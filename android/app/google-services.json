@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "864442827638",
+    "project_id": "incidentes-espe",
+    "storage_bucket": "incidentes-espe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864442827638:android:f9610bb3a2351957dbf057",
+        "android_client_info": {
+          "package_name": "com.example.tesisdos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "864442827638-pn8csv1nboinsiiedcjojo6p8d5j4u0n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tesisdos",
+            "certificate_hash": "e227fb77dd3c7d3a399cfb421e61e88fd5f185a9"
+          }
+        },
+        {
+          "client_id": "864442827638-mv9h08p7cmf4tfu9vef5e157g4tgqvt2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJy4CxJOrtggRceI9rkZC4tiMVvfbwMLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "864442827638-mv9h08p7cmf4tfu9vef5e157g4tgqvt2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "864442827638-d6bf1m94as9lkdo2efe5d6dfldebnqd6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.tesisfront"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
