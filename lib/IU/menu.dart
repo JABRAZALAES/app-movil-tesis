@@ -19,7 +19,7 @@ class MenuPage extends StatefulWidget {
 class _MenuPageState extends State<MenuPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late List<Animation<double>> _buttonAnimations;
+  late List<Animation<double>> _buttonAnimations; 
 
   String _nombreUsuario = 'Usuario';
 

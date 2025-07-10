@@ -152,4 +152,42 @@ class ObjetosPerdidosService {
     }
     return false;
   }
+
+
+Future<Map<String, dynamic>> guardarEvidenciaEntrega({
+  required int id,
+  required String token,
+  required String observaciones,
+  required String evidenciaUrl,
+}) async {
+  final headers = {'Authorization': 'Bearer $token'};
+  final data = {
+    'evidenciaUrl': evidenciaUrl,
+    'observaciones': observaciones,
+  };
+
+  return await _apiClient.post(
+    'objetos-perdidos/$id/evidencia',
+    data,
+    customHeaders: headers,
+  );
+}
+
+Future<Map<String, dynamic>> subirEvidenciaEntrega({
+  required int id,
+  required String token,
+  required File imagen,
+  required String observaciones,
+}) async {
+  final headers = {'Authorization': 'Bearer $token'};
+  return await _apiClient.postWithImage(
+    'objetos-perdidos/$id/evidencia',
+    {'observaciones': observaciones},
+    imagen,
+    customHeaders: headers,
+    // No necesitas imageFieldName porque tu método ya usa 'urlFoto'
+  );
+}
+
+
 }

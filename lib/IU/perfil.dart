@@ -29,6 +29,14 @@ class _PerfilPageState extends State<PerfilPage> {
     });
   }
 
+  String _formatearRol(String rol) {
+    if (rol.toLowerCase() == 'jefe') {
+      return 'Jefe';
+    }
+    // Capitalizar primera letra de cualquier rol
+    return rol.isNotEmpty ? rol[0].toUpperCase() + rol.substring(1).toLowerCase() : rol;
+  }
+
   Future<void> _cerrarSesion() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -45,8 +53,8 @@ class _PerfilPageState extends State<PerfilPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Perfil',
-          style: TextStyle(color: Colors.white),
+          'Mi Perfil',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         backgroundColor: const Color(0xFF0066B3),
         centerTitle: true,
@@ -59,102 +67,252 @@ class _PerfilPageState extends State<PerfilPage> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromARGB(255, 255, 255, 255),
-              Color.fromARGB(255, 250, 250, 250),
+              Color(0xFFF8FAFC),
+              Color(0xFFE2E8F0),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const CircleAvatar(
-              radius: 60,
-              backgroundColor: Color(0xFF0066B3),
-              child: Icon(Icons.person, size: 60, color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _nombre,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _correo,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8EDF2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.domain, color: Color(0xFF0066B3)),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Institución: ESPE',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar con decoración
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0066B3), Color(0xFF0052A3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline, color: Color(0xFF0066B3)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Rol: $_rol',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _cerrarSesion,
-                icon: const Icon(Icons.logout),
-                label: const Text(
-                  'Cerrar sesión',
-                  style: TextStyle(fontSize: 16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0066B3).withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0066B3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                child: const CircleAvatar(
+                  radius: 65,
+                  backgroundColor: Colors.white,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Color(0xFF0066B3),
+                    child: Icon(Icons.person, size: 65, color: Colors.white),
                   ),
-                  elevation: 4,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 25),
+
+              // Información del usuario
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _nombre,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _correo,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              // Información institucional
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F2FF),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF0066B3).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      Icons.domain,
+                      'Institución',
+                      'ESPE',
+                      const Color(0xFF0066B3),
+                    ),
+                    const SizedBox(height: 15),
+                    _buildInfoRow(
+                      Icons.person_outline,
+                      'Rol',
+                      _formatearRol(_rol),
+                      const Color(0xFF0066B3),
+                    ),
+                    const SizedBox(height: 15),
+                    _buildInfoRow(
+                      Icons.location_on_outlined,
+                      'Campus',
+                      'Santo Domingo, Luz de America',
+                      const Color(0xFF0066B3),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              // Estadísticas o información adicional
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Información de la cuenta',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    _buildInfoRow(
+                      Icons.calendar_today,
+                      'Último acceso',
+                      'Hoy',
+                      Colors.green,
+                    ),
+                    const SizedBox(height: 15),
+                    _buildInfoRow(
+                      Icons.security,
+                      'Estado',
+                      'Activo',
+                      Colors.green,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 35),
+
+              // Botón de cerrar sesión mejorado
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0066B3).withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: _cerrarSesion,
+                  icon: const Icon(Icons.logout, size: 20),
+                  label: const Text(
+                    'Cerrar sesión',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0066B3),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
-} 
+
+  Widget _buildInfoRow(IconData icon, String label, String value, Color iconColor) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: iconColor,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Services/objetosPerdidos_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class AdminObjetosEncontradosPage extends StatefulWidget {
   const AdminObjetosEncontradosPage({super.key});
@@ -190,6 +193,176 @@ class _AdminObjetosEncontradosPageState
           ),
     );
   }
+
+  // --- FUNCIÓN PARA SUBIR EVIDENCIA DE ENTREGA ---
+
+Future<String?> _mostrarDialogoEvidenciaEntrega(
+  BuildContext context,
+  int objetoId,
+) async {
+  File? imagen;
+  final TextEditingController obsController = TextEditingController();
+
+  final result = await showDialog<String>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Subir evidencia de entrega',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+
+                // Sección de selección de imagen
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.photo, size: 24),
+                          label: const Text('Seleccionar imagen',
+                              style: TextStyle(fontSize: 16)),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
+                          ),
+                          onPressed: () async {
+                            final picked = await ImagePicker().pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                imagen = File(picked.path);
+                              });
+                            }
+                          },
+                        ),
+                        if (imagen != null) ...[
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              imagen!,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Campo de observaciones
+                const Text(
+                  'Observaciones:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: TextField(
+                      controller: obsController,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Escribe tus observaciones aquí...',
+                      ),
+                      minLines: 3,
+                      maxLines: 5,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Botones de acción
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'cancelado'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                      ),
+                      child: const Text('Cancelar',
+                          style: TextStyle(fontSize: 16)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (_token == null) return;
+                        if (imagen == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Debes seleccionar una imagen'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final resp = await _objetosService.subirEvidenciaEntrega(
+                          id: objetoId,
+                          token: _token!,
+                          imagen: imagen!,
+                          observaciones: obsController.text,
+                        );
+
+                        Navigator.pop(context, 'exito');
+                        await _cargarObjetos();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text('Subir',
+                          style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  return result;
+}
+  
+
+
+
+
+
+
 
   Color _estadoColor(String? estadoId) {
     switch (estadoId) {
@@ -1014,25 +1187,74 @@ class _AdminObjetosEncontradosPageState
         );
 
       case 'EST_RECLAMADO':
-        return ElevatedButton.icon(
-          onPressed: () => _marcarDevuelto(id),
-          icon: const Icon(Icons.check_circle_rounded, size: 20),
-          label: const Text(
-            'Marcar como devuelto',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00B894),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ElevatedButton.icon(
+                            onPressed: () async {
+                final resultado = await _mostrarDialogoEvidenciaEntrega(context, id);
+                if (resultado == 'exito') {
+                  AwesomeDialog(
+                    context: context,
+                    dialogType: DialogType.success,
+                    animType: AnimType.scale,
+                    title: '¡Evidencia registrada!',
+                    desc: 'El estado del objeto ha sido cambiado a DEVUELTO.',
+                    btnOkText: 'Entendido',
+                    btnOkOnPress: () {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/admin-objetos-encontrados',
+                        (route) => false,
+                      );
+                    },
+                    btnOkColor: const Color(0xFF00B894),
+                    dismissOnTouchOutside: false,
+                    dismissOnBackKeyPress: false,
+                    customHeader: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00B894),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 50,
+                      ),
+                    ),
+                    headerAnimationLoop: false,
+                    dialogBackgroundColor: Colors.white,
+                    titleTextStyle: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    descTextStyle: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 16,
+                    ),
+                  ).show();
+                }
+              },
+              icon: const Icon(Icons.photo_camera, size: 20),
+              label: const Text(
+                'Subir evidencia de entrega',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6C5CE7),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
             ),
-            elevation: 0,
-          ),
+          ],
         );
 
-      case 'EST_DEVUELTO': // <-- Agrega este caso
+      case 'EST_DEVUELTO':
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1049,16 +1271,30 @@ class _AdminObjetosEncontradosPageState
               Icon(
                 Icons.check_circle_rounded,
                 color: const Color(0xFF00B894),
-                size: 20,
+                size: 24,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Devuelto',
-                style: TextStyle(
-                  color: Color(0xFF00B894),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Devuelto',
+                    style: TextStyle(
+                      color: Color(0xFF00B894),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Evidencia Registrada',
+                    style: TextStyle(
+                      color: Color(0xFF00B894),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

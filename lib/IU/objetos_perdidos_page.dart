@@ -16,7 +16,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://10.3.1.112:3000/';
+  final String _baseUrl = 'http://192.168.1.14:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color(0xFF0066B3);
@@ -75,35 +75,52 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
     }
   }
 
-  Future<void> _reclamarObjeto(dynamic objeto) async {
-    try {
-      setState(() => _isLoading = true);
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('user_id');
-      final token = prefs.getString('token');
-      
-      if (userId == null || token == null) {
-        _showSnackBar('No se pudo identificar el usuario.', isError: true);
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      await _service.reclamarObjeto(
-        id: objeto['id'],
-        estadoId: 'EST_RECLAMADO',
-        usuarioReclamanteId: userId,
-        token: token,
-      );
-      
-      await _cargarObjetos();
-      _showSnackBar('¡Has reclamado el objeto! Espera la validación del administrador.', isSuccess: true);
-    } catch (e) {
-      _showSnackBar('Error al reclamar el objeto: $e', isError: true);
-    } finally {
+ Future<void> _reclamarObjeto(dynamic objeto) async {
+  try {
+    setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    
+    if (userId == null || token == null) {
+      _showSnackBar('No se pudo identificar el usuario.', isError: true);
       setState(() => _isLoading = false);
+      return;
     }
-  }
 
+    final response = await _service.reclamarObjeto(
+      id: objeto['id'],
+      estadoId: 'EST_RECLAMADO',
+      usuarioReclamanteId: userId,
+      token: token,
+    );
+
+    if (response['message']?.toString().toLowerCase().contains('exitosamente') == true) {
+      await _cargarObjetos();
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('¡Objeto reclamado!'),
+          content: const Text(
+            'Tienes 1 hora para retirar el objeto. Si no lo haces, el reclamo expirará y el objeto volverá a estar disponible para otros usuarios.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _showSnackBar(response['message'] ?? 'No se pudo reclamar el objeto.', isError: true);
+    }
+  } catch (e) {
+    _showSnackBar('Error al reclamar el objeto: $e', isError: true);
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
   void _showSnackBar(String message, {bool isError = false, bool isSuccess = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

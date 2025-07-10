@@ -3,8 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
 import "../IU/Admin_IncidentesPage.dart";
 import "../IU/admin_ObjetosEncontrados.dart";
-
-    
+// Importa las páginas necesarias
 void main() { 
   runApp(const MyApp());
 }

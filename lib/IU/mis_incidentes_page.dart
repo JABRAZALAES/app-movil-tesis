@@ -18,7 +18,7 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
   String? _token;
 
   static const Color primaryColor = Color(0xFF0066B3);
-  static const String baseUrl = 'http://10.3.1.112:3000/'; // Cambia por tu IP si es necesario
+  static const String baseUrl = 'http://192.168.1.14:3000/'; // Cambia por tu IP si es necesario
 
   @override
   void initState() {
