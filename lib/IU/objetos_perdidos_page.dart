@@ -16,7 +16,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://192.168.1.14:3000/';
+  final String _baseUrl = 'http://10.3.1.112:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color(0xFF0066B3);

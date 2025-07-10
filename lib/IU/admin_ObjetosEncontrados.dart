@@ -99,6 +99,7 @@ class _AdminObjetosEncontradosPageState
     }
   }
 
+  // ignore: unused_element
   Future<void> _marcarDevuelto(int id) async {
     if (_token == null) return;
     try {
