@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  final String baseUrl = 'http://192.168.1.14:3000/api/usuarios';
+  final String baseUrl = 'http://10.3.1.112:3000/api/usuarios';
 
   Future<Map<String, dynamic>> register({
     required String nombre,
@@ -66,7 +66,7 @@ class AuthService {
     required String correo,
   }) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.14:3000/api/auth/recuperar-contrasena'),
+      Uri.parse('http://10.3.1.112/api/auth/recuperar-contrasena'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'correo': correo}),
     );
@@ -83,7 +83,7 @@ class AuthService {
     required String nuevaContrasena,
   }) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.14:3000/api/auth/cambiar-contrasena'),
+      Uri.parse('http://10.3.1.112:3000/api/auth/cambiar-contrasena'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
