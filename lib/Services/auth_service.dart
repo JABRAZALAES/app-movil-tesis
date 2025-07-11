@@ -66,7 +66,7 @@ class AuthService {
     required String correo,
   }) async {
     final response = await http.post(
-      Uri.parse('http://10.3.1.112/api/auth/recuperar-contrasena'),
+      Uri.parse('http://10.3.1.112:3000/api/auth/recuperar-contrasena'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'correo': correo}),
     );
