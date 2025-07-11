@@ -76,41 +76,150 @@ class _MenuPageState extends State<MenuPage>
       body: SafeArea(
         child: Column(
           children: [
-            // Logo Section
+            // Header Section - Moderno y elegante
             AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
-                return Transform.scale(
-                  scale: Tween<double>(begin: 0.9, end: 1.0)
-                      .animate(
-                        CurvedAnimation(
-                          parent: _animationController,
-                          curve: const Interval(
-                            0.0,
-                            0.3,
-                            curve: Curves.easeOut,
+                return Transform.translate(
+                  offset: Offset(
+                    0,
+                    20 * (1 - Tween<double>(begin: 0.0, end: 1.0)
+                        .animate(
+                          CurvedAnimation(
+                            parent: _animationController,
+                            curve: const Interval(
+                              0.0,
+                              0.4,
+                              curve: Curves.easeOut,
+                            ),
                           ),
-                        ),
-                      )
-                      .value,
-                  child: Container(
-                    width: screenSize.width,
-                    height: screenSize.height * 0.25,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      'assets/images/ITIN.png',
-                      fit: BoxFit.cover,
+                        )
+                        .value),
+                  ),
+                  child: Opacity(
+                    opacity: Tween<double>(begin: 0.0, end: 1.0)
+                        .animate(
+                          CurvedAnimation(
+                            parent: _animationController,
+                            curve: const Interval(
+                              0.0,
+                              0.4,
+                              curve: Curves.easeIn,
+                            ),
+                          ),
+                        )
+                        .value,
+                    child: Container(
                       width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF667eea),
+                            Color(0xFF4B73E8),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(32),
+                          bottomRight: Radius.circular(32),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF667eea).withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Icono y título principal
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Icon(
+                                  Icons.security,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Gestión de Novedades',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'ESPE - Santo Domingo',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Mensaje de bienvenida
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.waving_hand,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    '¡Bienvenido, $_nombreUsuario!',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -119,51 +228,60 @@ class _MenuPageState extends State<MenuPage>
 
             const SizedBox(height: 24),
 
-            // Title Section
-            AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: Tween<double>(begin: 0.0, end: 1.0)
-                      .animate(
-                        CurvedAnimation(
-                          parent: _animationController,
-                          curve: const Interval(
-                            0.3,
-                            0.5,
-                            curve: Curves.easeIn,
-                          ),
-                        ),
-                      )
-                      .value,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    child: const Text(
-                      'REPORTE DE INCIDENTES Y PÉRDIDAS',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 16),
-
             // Botones principales
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
+                    // Título de sección
+                    AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: Tween<double>(begin: 0.0, end: 1.0)
+                              .animate(
+                                CurvedAnimation(
+                                  parent: _animationController,
+                                  curve: const Interval(
+                                    0.4,
+                                    0.6,
+                                    curve: Curves.easeIn,
+                                  ),
+                                ),
+                              )
+                              .value,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 20,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              '¿Qué necesitas hacer?',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A1A1A),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
                     _buildAnimatedButton(
                       context,
                       'Reportar Incidente',
@@ -245,7 +363,7 @@ class _MenuPageState extends State<MenuPage>
                                       ),
                                     
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0066B3),
+                                      backgroundColor: const Color(0xFF667eea),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -272,7 +390,7 @@ class _MenuPageState extends State<MenuPage>
                                       
                                     ),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0066B3),
+                                      backgroundColor: const Color(0xFF667eea),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -333,34 +451,45 @@ class _MenuPageState extends State<MenuPage>
                         )
                         .value,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
+                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Color(0xFFF8FAFF)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: const Offset(0, -2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.grey[200],
-                            radius: 24,
-                            child: const Icon(
-                              Icons.person,
-                              size: 32,
-                              color: Colors.black54,
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 20,
+                              child: Icon(
+                                Icons.person,
+                                size: 24,
+                                color: const Color(0xFF667eea),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
-                          Expanded(   
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -369,11 +498,32 @@ class _MenuPageState extends State<MenuPage>
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: Colors.black,
+                                    color: Color(0xFF1A1A1A),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Usuario activo',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
                               ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF667eea).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.settings,
+                              size: 20,
+                              color: const Color(0xFF667eea),
                             ),
                           ),
                         ],
@@ -431,53 +581,87 @@ class _MenuPageState extends State<MenuPage>
           offset: Offset(0, 20 * (1 - animation.value)),
           child: Opacity(
             opacity: animation.value,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 1.0, end: 1.0),
-              duration: const Duration(milliseconds: 200),
-              builder: (context, scale, child) {
-                return Transform.scale(scale: scale, child: child);
-              },
-              child: SizedBox(
-                height: 56,
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    elevation: 2,
-                    shadowColor: Colors.grey.withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white, Color(0xFFF8FAFF)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 24,
-                        color: Colors.black,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          text,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onPressed,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          child: Icon(
+                            icon,
+                            size: 24,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Platform.isIOS
-                            ? CupertinoIcons.chevron_right
-                            : Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.black,
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                text,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A1A1A),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getButtonDescription(text),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF667eea).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Platform.isIOS
+                                ? CupertinoIcons.chevron_right
+                                : Icons.arrow_forward_ios,
+                            size: 16,
+                            color: const Color(0xFF667eea),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -486,6 +670,21 @@ class _MenuPageState extends State<MenuPage>
         );
       },
     );
+  }
+
+  String _getButtonDescription(String buttonText) {
+    switch (buttonText) {
+      case 'Reportar Incidente':
+        return 'Notifica un problema o incidente';
+      case 'Reportar Objeto Perdido':
+        return 'Busca un objeto que perdiste';
+      case 'Mis Incidentes':
+        return 'Revisa tus reportes anteriores';
+      case 'Objetos Perdidos':
+        return 'Explora objetos encontrados';
+      default:
+        return '';
+    }
   }
 
   PageRoute _buildPageRoute(Widget page) {

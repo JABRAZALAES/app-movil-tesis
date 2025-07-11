@@ -26,7 +26,7 @@ class AdminIncidentesPage extends StatefulWidget {
 }
 
 class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
-  static const String _baseUrl = 'http://10.3.1.112:3000/';
+  static const String _baseUrl = 'http://192.168.1.14:3000/';
   final IncidentesService _incidentesService = IncidentesService();
   List<dynamic> _incidentes = [];
   List<Map<String, dynamic>> _inconvenientes = [];

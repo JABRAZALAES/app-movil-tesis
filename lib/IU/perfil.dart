@@ -56,7 +56,7 @@ class _PerfilPageState extends State<PerfilPage> {
           'Mi Perfil',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
-        backgroundColor: const Color(0xFF0066B3),
+        backgroundColor: const Color(0xFF667eea),
         centerTitle: true,
         elevation: 4,
         automaticallyImplyLeading: true,
@@ -85,13 +85,13 @@ class _PerfilPageState extends State<PerfilPage> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0066B3), Color(0xFF0052A3)],
+                    colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0066B3).withOpacity(0.3),
+                      color: const Color(0xFF667eea).withOpacity(0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -102,7 +102,7 @@ class _PerfilPageState extends State<PerfilPage> {
                   backgroundColor: Colors.white,
                   child: CircleAvatar(
                     radius: 60,
-                    backgroundColor: Color(0xFF0066B3),
+                    backgroundColor: Color(0xFF667eea),
                     child: Icon(Icons.person, size: 65, color: Colors.white),
                   ),
                 ),
@@ -156,7 +156,7 @@ class _PerfilPageState extends State<PerfilPage> {
                   color: const Color(0xFFE8F2FF),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF0066B3).withOpacity(0.2),
+                    color: const Color(0xFF667eea).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -166,21 +166,21 @@ class _PerfilPageState extends State<PerfilPage> {
                       Icons.domain,
                       'Institución',
                       'ESPE',
-                      const Color(0xFF0066B3),
+                      const Color(0xFF667eea),
                     ),
                     const SizedBox(height: 15),
                     _buildInfoRow(
                       Icons.person_outline,
                       'Rol',
                       _formatearRol(_rol),
-                      const Color(0xFF0066B3),
+                      const Color(0xFF667eea),
                     ),
                     const SizedBox(height: 15),
                     _buildInfoRow(
                       Icons.location_on_outlined,
                       'Campus',
                       'Santo Domingo, Luz de America',
-                      const Color(0xFF0066B3),
+                      const Color(0xFF667eea),
                     ),
                   ],
                 ),
@@ -238,7 +238,7 @@ class _PerfilPageState extends State<PerfilPage> {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0066B3).withOpacity(0.3),
+                      color: const Color(0xFF667eea).withOpacity(0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -255,7 +255,7 @@ class _PerfilPageState extends State<PerfilPage> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0066B3),
+                    backgroundColor: const Color(0xFF667eea),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(

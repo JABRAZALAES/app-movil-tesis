@@ -5,7 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Agrega esto
 
 class ApiClient {
-  final String baseUrl = 'http://10.3.1.112:3000/api';
+  final String baseUrl = 'http://:3000/api';
 
   // Obtiene el token guardado en SharedPreferences
   Future<String?> _getToken() async {

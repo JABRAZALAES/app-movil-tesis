@@ -33,7 +33,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
   final _service = IncidentesService();
   String? _token;
 
-  static const Color primaryColor = Color(0xFF0066B3);
+  static const Color primaryColor = Color(0xFF667eea);
   static const Color accentColor = Color(0xFF4A90E2);
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardColor = Color(0xFFFFFFFF);
