@@ -8,8 +8,6 @@ class IncidentesService {
 
 Future<Map<String, dynamic>> crearIncidente({
   required String descripcion,
-  required String fechaReporte,
-  required String horaReporte,
   required String laboratorioId, // <-- String si usas nombre
   int? computadoraId,
   required String estadoId,
@@ -23,8 +21,6 @@ Future<Map<String, dynamic>> crearIncidente({
 
     final data = {
       'descripcion': descripcion,
-      'fechaReporte': fechaReporte,
-      'horaReporte': horaReporte,
       'laboratorio_id': laboratorioId,
       if (computadoraId != null) 'computadora_id': computadoraId,
       'estadoId': estadoId,

@@ -19,7 +19,7 @@ class MenuPage extends StatefulWidget {
 class _MenuPageState extends State<MenuPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late List<Animation<double>> _buttonAnimations; 
+  late List<Animation<double>> _buttonAnimations;
 
   String _nombreUsuario = 'Usuario';
 
@@ -83,32 +83,35 @@ class _MenuPageState extends State<MenuPage>
                 return Transform.translate(
                   offset: Offset(
                     0,
-                    20 * (1 - Tween<double>(begin: 0.0, end: 1.0)
-                        .animate(
-                          CurvedAnimation(
-                            parent: _animationController,
-                            curve: const Interval(
-                              0.0,
-                              0.4,
-                              curve: Curves.easeOut,
-                            ),
-                          ),
-                        )
-                        .value),
+                    20 *
+                        (1 -
+                            Tween<double>(begin: 0.0, end: 1.0)
+                                .animate(
+                                  CurvedAnimation(
+                                    parent: _animationController,
+                                    curve: const Interval(
+                                      0.0,
+                                      0.4,
+                                      curve: Curves.easeOut,
+                                    ),
+                                  ),
+                                )
+                                .value),
                   ),
                   child: Opacity(
-                    opacity: Tween<double>(begin: 0.0, end: 1.0)
-                        .animate(
-                          CurvedAnimation(
-                            parent: _animationController,
-                            curve: const Interval(
-                              0.0,
-                              0.4,
-                              curve: Curves.easeIn,
-                            ),
-                          ),
-                        )
-                        .value,
+                    opacity:
+                        Tween<double>(begin: 0.0, end: 1.0)
+                            .animate(
+                              CurvedAnimation(
+                                parent: _animationController,
+                                curve: const Interval(
+                                  0.0,
+                                  0.4,
+                                  curve: Curves.easeIn,
+                                ),
+                              ),
+                            )
+                            .value,
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -119,10 +122,7 @@ class _MenuPageState extends State<MenuPage>
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF667eea),
-                            Color(0xFF4B73E8),
-                          ],
+                          colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
                         ),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(32),
@@ -130,7 +130,12 @@ class _MenuPageState extends State<MenuPage>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF667eea).withOpacity(0.3),
+                            color: const Color.fromARGB(
+                              255,
+                              255,
+                              255,
+                              255,
+                            ).withOpacity(0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -182,7 +187,7 @@ class _MenuPageState extends State<MenuPage>
                             ],
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Mensaje de bienvenida
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -239,18 +244,19 @@ class _MenuPageState extends State<MenuPage>
                       animation: _animationController,
                       builder: (context, child) {
                         return Opacity(
-                          opacity: Tween<double>(begin: 0.0, end: 1.0)
-                              .animate(
-                                CurvedAnimation(
-                                  parent: _animationController,
-                                  curve: const Interval(
-                                    0.4,
-                                    0.6,
-                                    curve: Curves.easeIn,
-                                  ),
-                                ),
-                              )
-                              .value,
+                          opacity:
+                              Tween<double>(begin: 0.0, end: 1.0)
+                                  .animate(
+                                    CurvedAnimation(
+                                      parent: _animationController,
+                                      curve: const Interval(
+                                        0.4,
+                                        0.6,
+                                        curve: Curves.easeIn,
+                                      ),
+                                    ),
+                                  )
+                                  .value,
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -337,10 +343,12 @@ class _MenuPageState extends State<MenuPage>
                       },
                       _buttonAnimations[3],
                     ),
-                    
+
                     // Botones de administración solo para TECNICO o JEFE
                     FutureBuilder<String?>(
-                      future: SharedPreferences.getInstance().then((prefs) => prefs.getString('rol')),
+                      future: SharedPreferences.getInstance().then(
+                        (prefs) => prefs.getString('rol'),
+                      ),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) return const SizedBox.shrink();
                         final rol = snapshot.data?.toLowerCase();
@@ -354,14 +362,16 @@ class _MenuPageState extends State<MenuPage>
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.admin_panel_settings, size: 20),
+                                    icon: const Icon(
+                                      Icons.admin_panel_settings,
+                                      size: 20,
+                                    ),
                                     label: const Text(
-                                     
-                                        'Administrar Incidentes',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    
+                                      'Administrar Incidentes',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF667eea),
                                       foregroundColor: Colors.white,
@@ -371,7 +381,10 @@ class _MenuPageState extends State<MenuPage>
                                     ),
                                     onPressed: () {
                                       _playHapticFeedback();
-                                      Navigator.pushNamed(context, '/adminIncidentes');
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/adminIncidentes',
+                                      );
                                     },
                                   ),
                                 ),
@@ -383,11 +396,9 @@ class _MenuPageState extends State<MenuPage>
                                   child: ElevatedButton.icon(
                                     icon: const Icon(Icons.search, size: 20),
                                     label: const Text(
-                                    
-                                        'Administrar Objetos Encontrados',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(fontSize: 14),
-                                      
+                                      'Administrar Objetos Encontrados',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 14),
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF667eea),
@@ -398,7 +409,10 @@ class _MenuPageState extends State<MenuPage>
                                     ),
                                     onPressed: () {
                                       _playHapticFeedback();
-                                      Navigator.pushNamed(context, '/adminObjetosEncontrados');
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/adminObjetosEncontrados',
+                                      );
                                     },
                                   ),
                                 ),
@@ -438,20 +452,24 @@ class _MenuPageState extends State<MenuPage>
                                 .value),
                   ),
                   child: Opacity(
-                    opacity: Tween<double>(begin: 0.0, end: 1.0)
-                        .animate(
-                          CurvedAnimation(
-                            parent: _animationController,
-                            curve: const Interval(
-                              0.6,
-                              0.8,
-                              curve: Curves.easeIn,
-                            ),
-                          ),
-                        )
-                        .value,
+                    opacity:
+                        Tween<double>(begin: 0.0, end: 1.0)
+                            .animate(
+                              CurvedAnimation(
+                                parent: _animationController,
+                                curve: const Interval(
+                                  0.6,
+                                  0.8,
+                                  curve: Curves.easeIn,
+                                ),
+                              ),
+                            )
+                            .value,
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -539,21 +557,23 @@ class _MenuPageState extends State<MenuPage>
               animation: _animationController,
               builder: (context, child) {
                 return Opacity(
-                  opacity: Tween<double>(begin: 0.0, end: 1.0)
-                      .animate(
-                        CurvedAnimation(
-                          parent: _animationController,
-                          curve: const Interval(
-                            0.7,
-                            0.9,
-                            curve: Curves.easeIn,
-                          ),
-                        ),
-                      )
-                      .value,
-                  child: Platform.isIOS
-                      ? _buildCupertinoTabBar()
-                      : _buildMaterialBottomNav(),
+                  opacity:
+                      Tween<double>(begin: 0.0, end: 1.0)
+                          .animate(
+                            CurvedAnimation(
+                              parent: _animationController,
+                              curve: const Interval(
+                                0.7,
+                                0.9,
+                                curve: Curves.easeIn,
+                              ),
+                            ),
+                          )
+                          .value,
+                  child:
+                      Platform.isIOS
+                          ? _buildCupertinoTabBar()
+                          : _buildMaterialBottomNav(),
                 );
               },
             ),
@@ -615,11 +635,7 @@ class _MenuPageState extends State<MenuPage>
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
-                            icon,
-                            size: 24,
-                            color: Colors.white,
-                          ),
+                          child: Icon(icon, size: 24, color: Colors.white),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -677,7 +693,7 @@ class _MenuPageState extends State<MenuPage>
       case 'Reportar Incidente':
         return 'Notifica un problema o incidente';
       case 'Reportar Objeto Perdido':
-        return 'Busca un objeto que perdiste';
+        return 'Notifica un objeto perdido';
       case 'Mis Incidentes':
         return 'Revisa tus reportes anteriores';
       case 'Objetos Perdidos':

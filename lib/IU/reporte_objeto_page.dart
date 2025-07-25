@@ -18,8 +18,7 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _ubicacionController = TextEditingController();
-  final TextEditingController _fechaController = TextEditingController();
-  final TextEditingController _horaController = TextEditingController();
+
   File? _imagen;
   final ImagePicker _picker = ImagePicker();
 
@@ -29,7 +28,7 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
   bool _isLoading = false;
 
   // Laboratorios
-  List<String> _laboratorios = [];
+  List<Map<String, dynamic>> _laboratorios = [];
   String? _laboratorioSeleccionado;
 
   // Animación
@@ -41,7 +40,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF1E293B);
-  // ignore: unused_field
   static const Color textSecondary = Color(0xFF64748B);
 
   @override
@@ -64,8 +62,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
     _nombreController.dispose();
     _descripcionController.dispose();
     _ubicacionController.dispose();
-    _fechaController.dispose();
-    _horaController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -91,64 +87,11 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
       try {
         final labs = await _objetosService.obtenerLaboratorios(token);
         setState(() {
-          _laboratorios = List<String>.from(labs);
+          _laboratorios = List<Map<String, dynamic>>.from(labs);
         });
       } catch (e) {
         _mostrarError('Error al cargar laboratorios: $e');
       }
-    }
-  }
-
-  Future<void> _seleccionarFecha() async {
-    final DateTime? selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primaryColor,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (selectedDate != null) {
-      setState(() {
-        _fechaController.text =
-            '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
-      });
-    }
-  }
-
-  Future<void> _seleccionarHora() async {
-    final TimeOfDay? selectedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color.from(alpha: 1, red: 0, green: 0.4, blue: 0.702),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (selectedTime != null) {
-      setState(() {
-        _horaController.text =
-            '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
-      });
     }
   }
 
@@ -158,7 +101,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
         source: source,
         imageQuality: 80,
       );
-
       if (selectedImage != null) {
         setState(() {
           _imagen = File(selectedImage.path);
@@ -293,14 +235,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
       _mostrarError('Por favor, selecciona un laboratorio');
       return false;
     }
-    if (_fechaController.text.trim().isEmpty) {
-      _mostrarError('Por favor, selecciona cuándo encontraste el objeto');
-      return false;
-    }
-    if (_horaController.text.trim().isEmpty) {
-      _mostrarError('Por favor, selecciona la hora en que encontraste el objeto');
-      return false;
-    }
     return true;
   }
 
@@ -322,10 +256,8 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
       await _objetosService.crearObjetoPerdido(
         nombreObjeto: _nombreController.text.trim(),
         descripcion: _descripcionController.text.trim(),
-        fechaPerdida: _fechaController.text.trim(),
-        horaPerdida: _horaController.text.trim(),
         lugar: _ubicacionController.text.trim(),
-        laboratorio: _laboratorioSeleccionado!,
+        laboratorio: _laboratorioSeleccionado!, // Este es el ID como String
         estadoId: 'EST_PENDIENTE',
         imagen: _imagen,
         token: _tokenFinal!,
@@ -387,8 +319,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
     _nombreController.clear();
     _descripcionController.clear();
     _ubicacionController.clear();
-    _fechaController.clear();
-    _horaController.clear();
     setState(() {
       _imagen = null;
       _laboratorioSeleccionado = null;
@@ -503,7 +433,7 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
                 foregroundColor: Colors.white,
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
-                    'Reportar Objeto Encontrado',
+                    'Reportar Objeto Perdido',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -570,9 +500,9 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
                           child: DropdownButtonFormField<String>(
                             value: _laboratorioSeleccionado,
                             items: _laboratorios
-                                .map((lab) => DropdownMenuItem(
-                                      value: lab,
-                                      child: Text(lab, style: const TextStyle(color: Colors.black)),
+                                .map((lab) => DropdownMenuItem<String>(
+                                      value: lab['id'].toString(),
+                                      child: Text(lab['nombre'] ?? 'Sin nombre', style: const TextStyle(color: Colors.black)),
                                     ))
                                 .toList(),
                             onChanged: _isLoading ? null : (value) {
@@ -583,28 +513,6 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
                             decoration: _inputDecoration('Selecciona un laboratorio'),
                             style: const TextStyle(color: Colors.black),
                             dropdownColor: Colors.white,
-                          ),
-                        ),
-                        _buildSection(
-                          title: 'Fecha',
-                          icon: Icons.calendar_today,
-                          child: TextFormField(
-                            controller: _fechaController,
-                            readOnly: true,
-                            style: const TextStyle(color: Colors.black),
-                            onTap: _isLoading ? null : _seleccionarFecha,
-                            decoration: _inputDecoration('Selecciona la fecha cuando lo encontraste'),
-                          ),
-                        ),
-                        _buildSection(
-                          title: 'Hora',
-                          icon: Icons.access_time,
-                          child: TextFormField(
-                            controller: _horaController,
-                            readOnly: true,
-                            style: const TextStyle(color: Colors.black),
-                            onTap: _isLoading ? null : _seleccionarHora,
-                            decoration: _inputDecoration('Selecciona la hora cuando lo encontraste'),
                           ),
                         ),
                         _buildSection(

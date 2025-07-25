@@ -8,22 +8,18 @@ class ObjetosPerdidosService {
   Future<Map<String, dynamic>> crearObjetoPerdido({
     required String nombreObjeto,
     required String descripcion,
-    required String fechaPerdida,
     required String lugar,
     required String laboratorio,
     required String
     estadoId, // Usa String para IDs textuales como 'EST_PENDIENTE'
     File? imagen,
     required String token,
-    String? horaPerdida, // Si usas hora
   }) async {
     final headers = {'Authorization': 'Bearer $token'};
 
     final data = {
       'nombre_objeto': nombreObjeto,
       'descripcion': descripcion,
-      'fecha_perdida': fechaPerdida,
-      if (horaPerdida != null) 'hora_perdida': horaPerdida,
       'lugar': lugar,
       'laboratorio': laboratorio,
       'estadoId': estadoId,
@@ -114,21 +110,22 @@ class ObjetosPerdidosService {
   }
 
   // Obtener laboratorios
-  Future<List<String>> obtenerLaboratorios(String token) async {
-    final headers = {'Authorization': 'Bearer $token'};
-    final response = await _apiClient.get(
-      'laboratorios',
-      customHeaders: headers,
-    );
-    if (response is List) {
-      return response.cast<String>();
-    } else if (response is Map<String, dynamic> &&
-        response.containsKey('data')) {
-      // Si tu backend responde con { data: [...] }
-      return (response['data'] as List).cast<String>();
-    }
-    return [];
+Future<List<Map<String, dynamic>>> obtenerLaboratorios(String token) async {
+  final headers = {'Authorization': 'Bearer $token'};
+  final response = await _apiClient.get(
+    'laboratorios',
+    customHeaders: headers,
+  );
+  if (response is List) {
+    // Si el backend responde directamente una lista de laboratorios
+    return List<Map<String, dynamic>>.from(response);
+  } else if (response is Map<String, dynamic> &&
+      response.containsKey('data')) {
+    // Si el backend responde { data: [...] }
+    return List<Map<String, dynamic>>.from(response['data']);
   }
+  return [];
+}
   // Método para borrar un objeto perdido
   // ...existing code...
 

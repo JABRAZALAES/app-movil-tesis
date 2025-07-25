@@ -23,8 +23,6 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
   final String? _estadoId = 'EST_PENDIENTE';
   String? _inconvenienteSeleccionado;
   File? _imagen;
-  DateTime? _fechaSeleccionada;
-  TimeOfDay? _horaSeleccionada;
 
   List<Map<String, dynamic>> _laboratorios = [];
   List<Map<String, dynamic>> _computadoras = [];
@@ -221,63 +219,12 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
     }
   }
 
-  Future<void> _seleccionarFecha() async {
-    final fecha = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2023),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: primaryColor,
-              onPrimary: Colors.white,
-              surface: cardColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (fecha != null) setState(() => _fechaSeleccionada = fecha);
-  }
-
-  Future<void> _seleccionarHora() async {
-    final hora = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: primaryColor,
-              onPrimary: Colors.white,
-              surface: cardColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (hora != null) setState(() => _horaSeleccionada = hora);
-  }
-
   Future<void> _enviarFormulario() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_fechaSeleccionada == null || _horaSeleccionada == null) {
-      _showSnackBar('Por favor selecciona fecha y hora', isError: true);
-      return;
-    }
 
     setState(() {
       _isSubmitting = true;
     });
-
-    final fecha = DateFormat('yyyy-MM-dd').format(_fechaSeleccionada!);
-    final hora =
-        '${_horaSeleccionada!.hour.toString().padLeft(2, '0')}:'
-        '${_horaSeleccionada!.minute.toString().padLeft(2, '0')}:00';
     final otroInconveniente =
         _inconvenienteSeleccionado == 'otro'
             ? _otroInconvenienteController.text
@@ -290,9 +237,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
     try {
       await _service.crearIncidente(
         descripcion: _descripcionController.text,
-        fechaReporte: fecha,
-        horaReporte: hora,
-        laboratorioId: _laboratorioId!,
+        laboratorioId: (_laboratorioId!),
         computadoraId: _computadoraId,
         estadoId: _estadoId!,
         inconvenienteId: inconvenienteId,
@@ -438,62 +383,76 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                 ),
               ),
               SliverToBoxAdapter(
-                child: _token == null ||
-                        _laboratorios.isEmpty ||
-                        _inconvenientes.isEmpty
-                    ? SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              primaryColor,
+                child:
+                    _token == null ||
+                            _laboratorios.isEmpty ||
+                            _inconvenientes.isEmpty
+                        ? SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                primaryColor,
+                              ),
                             ),
                           ),
-                        ),
-                      )
-                    : FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: Form(
-                          key: _formKey,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              children: [
-                                // Tipo de inconveniente
-                                _buildSection(
-                                  title: 'Tipo de Inconveniente',
-                                  icon: Icons.bug_report,
-                                  child: Column(
-                                    children: [
-                                      DropdownButtonFormField<String>(
-                                        value: _inconvenienteSeleccionado,
-                                        isExpanded: true,
-                                        items: [
-                                          ..._inconvenientes.map(
-                                            (inc) => DropdownMenuItem<String>(
-                                              value: inc['id'].toString(),
-                                              child: Text(inc['descripcion']),
+                        )
+                        : FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Form(
+                            key: _formKey,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  // Tipo de inconveniente
+                                  _buildSection(
+                                    title: 'Tipo de Inconveniente',
+                                    icon: Icons.bug_report,
+                                    child: Column(
+                                      children: [
+                                        DropdownButtonFormField<String>(
+                                          value: _inconvenienteSeleccionado,
+                                          isExpanded: true,
+                                          items: [
+                                            ..._inconvenientes
+                                                .where(
+                                                  (inc) =>
+                                                      inc['tipo'] ==
+                                                      'Recurrente',
+                                                ) // Solo los recurrentes
+                                                .map(
+                                                  (
+                                                    inc,
+                                                  ) => DropdownMenuItem<String>(
+                                                    value: inc['id'].toString(),
+                                                    child: Text(
+                                                      inc['descripcion'],
+                                                    ),
+                                                  ),
+                                                ),
+                                            const DropdownMenuItem<String>(
+                                              value: 'otro',
+                                              child: Text('Otro (especificar)'),
                                             ),
+                                          ],
+                                          decoration: _buildInputDecoration(
+                                            'Seleccionar tipo',
                                           ),
-                                          const DropdownMenuItem<String>(
-                                            value: 'otro',
-                                            child: Text('Otro (especificar)'),
-                                          ),
-                                        ],
-                                        decoration: _buildInputDecoration(
-                                          'Seleccionar tipo',
+                                          onChanged:
+                                              (value) => setState(
+                                                () =>
+                                                    _inconvenienteSeleccionado =
+                                                        value,
+                                              ),
+                                          validator:
+                                              (value) =>
+                                                  value == null
+                                                      ? 'Campo requerido'
+                                                      : null,
                                         ),
-                                        onChanged: (value) => setState(
-                                          () => _inconvenienteSeleccionado =
-                                              value,
-                                        ),
-                                        validator: (value) =>
-                                            value == null
-                                                ? 'Campo requerido'
-                                                : null,
-                                      ),
-                                      if (_inconvenienteSeleccionado == 'otro')
-                                        ...[
+                                        if (_inconvenienteSeleccionado ==
+                                            'otro') ...[
                                           const SizedBox(height: 16),
                                           TextFormField(
                                             controller:
@@ -502,357 +461,287 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                               'Especificar inconveniente',
                                               icon: Icons.edit,
                                             ),
-                                            validator: (value) =>
-                                                value!.isEmpty
-                                                    ? 'Por favor especifica el inconveniente'
-                                                    : null,
+                                            validator:
+                                                (value) =>
+                                                    value!.isEmpty
+                                                        ? 'Por favor especifica el inconveniente'
+                                                        : null,
                                           ),
                                         ],
-                                    ],
-                                  ),
-                                ),
-
-                                // Descripción
-                                _buildSection(
-                                  title: 'Descripción del Problema',
-                                  icon: Icons.description,
-                                  child: TextFormField(
-                                    controller: _descripcionController,
-                                    maxLines: 4,
-                                    decoration: _buildInputDecoration(
-                                      'Describe detalladamente el problema',
-                                    ),
-                                    validator: (value) =>
-                                        value!.isEmpty
-                                            ? 'Campo requerido'
-                                            : null,
-                                  ),
-                                ),
-
-                                // Ubicación
-                                _buildSection(
-                                  title: 'Ubicación',
-                                  icon: Icons.location_on,
-                                  child: Column(
-                                    children: [
-                                      DropdownButtonFormField<String>(
-                                        value: _laboratorioId,
-                                        isExpanded: true,
-                                        items: _laboratorios
-                                            .map(
-                                              (lab) => DropdownMenuItem<
-                                                  String>(
-                                                value: lab['nombre'],
-                                                child: Text(
-                                                  lab['nombre'] ?? 'Sin nombre',
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                        decoration: _buildInputDecoration(
-                                          'Laboratorio',
-                                        ),
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _laboratorioId = value;
-                                            _computadoraId = null;
-                                            _computadoras = [];
-                                          });
-                                          _cargarComputadoras();
-                                        },
-                                        validator: (value) =>
-                                            value == null
-                                                ? 'Campo requerido'
-                                                : null,
-                                      ),
-                                      if (_computadoras.isNotEmpty) ...[
-                                        const SizedBox(height: 16),
-                                        DropdownButtonFormField<int>(
-                                          value: _computadoraId,
-                                          isExpanded: true,
-                                          items: _computadoras
-                                              .map(
-                                                (comp) =>
-                                                    DropdownMenuItem<int>(
-                                                      value: comp['id'] as int,
-                                                      child: Text(
-                                                        comp['nombre'],
-                                                      ),
-                                                    ),
-                                              )
-                                              .toList(),
-                                          decoration: _buildInputDecoration(
-                                            'Computadora',
-                                          ),
-                                          onChanged: (value) => setState(
-                                            () => _computadoraId = value,
-                                          ),
-                                        ),
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
 
-                                // Fecha y Hora
-                                _buildSection(
-                                  title: 'Fecha y Hora',
-                                  icon: Icons.schedule,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          onTap: _seleccionarFecha,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                  color: Colors.grey[300]!),
-                                              color: Colors.grey[50],
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.calendar_today,
-                                                    color: primaryColor,
-                                                    size: 18),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  _fechaSeleccionada != null
-                                                      ? DateFormat('dd/MM/yyyy')
-                                                          .format(
-                                                              _fechaSeleccionada!)
-                                                      : '',
-                                                  style: TextStyle(
-                                                    color: _fechaSeleccionada !=
-                                                            null
-                                                        ? textPrimary
-                                                        : textSecondary,
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
+                                  // Descripción
+                                  _buildSection(
+                                    title: 'Descripción del Problema',
+                                    icon: Icons.description,
+                                    child: TextFormField(
+                                      controller: _descripcionController,
+                                      maxLines: 4,
+                                      decoration: _buildInputDecoration(
+                                        'Describe detalladamente el problema',
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          onTap: _seleccionarHora,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                  color: Colors.grey[300]!),
-                                              color: Colors.grey[50],
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.access_time,
-                                                    color: primaryColor,
-                                                    size: 18),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  _horaSeleccionada != null
-                                                      ? _horaSeleccionada!
-                                                          .format(context)
-                                                      : '',
-                                                  style: TextStyle(
-                                                    color: _horaSeleccionada !=
-                                                            null
-                                                        ? textPrimary
-                                                        : textSecondary,
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                      validator:
+                                          (value) =>
+                                              value!.isEmpty
+                                                  ? 'Campo requerido'
+                                                  : null,
+                                    ),
                                   ),
-                                ),
 
-                                // Imagen
-                                _buildSection(
-                                  title: 'Evidencia Fotográfica',
-                                  icon: Icons.camera_alt,
-                                  child: Column(
-                                    children: [
-                                      if (_imagen == null)
-                                        GestureDetector(
-                                          onTap: _mostrarOpcionesImagen,
-                                          child: Container(
-                                            height: 120,
-                                            decoration: BoxDecoration(
-                                              color: primaryColor
-                                                  .withOpacity(0.05),
-                                              border: Border.all(
-                                                color: primaryColor
-                                                    .withOpacity(0.3),
-                                                style: BorderStyle.solid,
-                                                width: 2,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Center(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.add_a_photo,
-                                                    size: 32,
-                                                    color: primaryColor,
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    'Agregar Imagen',
-                                                    style: TextStyle(
-                                                      color: primaryColor,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      else
-                                        Stack(
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              child: Image.file(
-                                                _imagen!,
-                                                height: 200,
-                                                width: double.infinity,
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: 8,
-                                              right: 8,
-                                              child: GestureDetector(
-                                                onTap: () => setState(
-                                                    () => _imagen = null),
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(6),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red[600],
-                                                    shape: BoxShape.circle,
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.2),
-                                                        blurRadius: 4,
-                                                        offset:
-                                                            const Offset(0, 2),
+                                  // Ubicación
+                                  _buildSection(
+                                    title: 'Ubicación',
+                                    icon: Icons.location_on,
+                                    child: Column(
+                                      children: [
+                                        DropdownButtonFormField<String>(
+                                          value: _laboratorioId,
+                                          isExpanded: true,
+                                          items:
+                                              _laboratorios
+                                                  .map(
+                                                    (lab) => DropdownMenuItem<
+                                                      String
+                                                    >(
+                                                      value:
+                                                          lab['id']
+                                                              .toString(), // Usa el ID como value
+                                                      child: Text(
+                                                        lab['nombre'] ??
+                                                            'Sin nombre',
                                                       ),
-                                                    ],
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.close,
-                                                    color: Colors.white,
-                                                    size: 18,
-                                                  ),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                          decoration: _buildInputDecoration(
+                                            'Laboratorio',
+                                          ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _laboratorioId = value;
+                                              _computadoraId = null;
+                                              _computadoras = [];
+                                            });
+                                            _cargarComputadoras();
+                                          },
+                                          validator:
+                                              (value) =>
+                                                  value == null
+                                                      ? 'Campo requerido'
+                                                      : null,
+                                        ),
+                                        if (_computadoras.isNotEmpty) ...[
+                                          const SizedBox(height: 16),
+                                          DropdownButtonFormField<int>(
+                                            value: _computadoraId,
+                                            isExpanded: true,
+                                            items:
+                                                _computadoras
+                                                    .map(
+                                                      (comp) =>
+                                                          DropdownMenuItem<int>(
+                                                            value:
+                                                                comp['id']
+                                                                    as int,
+                                                            child: Text(
+                                                              comp['nombre'],
+                                                            ),
+                                                          ),
+                                                    )
+                                                    .toList(),
+                                            decoration: _buildInputDecoration(
+                                              'Computadora',
+                                            ),
+                                            onChanged:
+                                                (value) => setState(
+                                                  () => _computadoraId = value,
+                                                ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Imagen
+                                  _buildSection(
+                                    title: 'Evidencia Fotográfica',
+                                    icon: Icons.camera_alt,
+                                    child: Column(
+                                      children: [
+                                        if (_imagen == null)
+                                          GestureDetector(
+                                            onTap: _mostrarOpcionesImagen,
+                                            child: Container(
+                                              height: 120,
+                                              decoration: BoxDecoration(
+                                                color: primaryColor.withOpacity(
+                                                  0.05,
+                                                ),
+                                                border: Border.all(
+                                                  color: primaryColor
+                                                      .withOpacity(0.3),
+                                                  style: BorderStyle.solid,
+                                                  width: 2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Center(
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.add_a_photo,
+                                                      size: 32,
+                                                      color: primaryColor,
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'Agregar Imagen',
+                                                      style: TextStyle(
+                                                        color: primaryColor,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(height: 24),
-
-                                // Botón de envío
-                                Container(
-                                  width: double.infinity,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [primaryColor, accentColor],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: primaryColor.withOpacity(0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: _isSubmitting
-                                        ? null
-                                        : _enviarFormulario,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
-                                      ),
-                                    ),
-                                    child: _isSubmitting
-                                        ? const SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                      Colors.white),
-                                              strokeWidth: 2,
                                             ),
                                           )
-                                        : const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                        else
+                                          Stack(
                                             children: [
-                                              Icon(
-                                                Icons.send,
-                                                color: Colors.white,
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: Image.file(
+                                                  _imagen!,
+                                                  height: 200,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                ),
                                               ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Enviar Reporte',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: GestureDetector(
+                                                  onTap:
+                                                      () => setState(
+                                                        () => _imagen = null,
+                                                      ),
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(6),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red[600],
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.2),
+                                                          blurRadius: 4,
+                                                          offset: const Offset(
+                                                            0,
+                                                            2,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      color: Colors.white,
+                                                      size: 18,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
                                             ],
                                           ),
+                                      ],
+                                    ),
                                   ),
-                                ),
 
-                                const SizedBox(height: 32),
-                              ],
+                                  const SizedBox(height: 24),
+
+                                  // Botón de envío
+                                  Container(
+                                    width: double.infinity,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [primaryColor, accentColor],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: primaryColor.withOpacity(0.4),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed:
+                                          _isSubmitting
+                                              ? null
+                                              : _enviarFormulario,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
+                                      ),
+                                      child:
+                                          _isSubmitting
+                                              ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                              : const Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.send,
+                                                    color: Colors.white,
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    'Enviar Reporte',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
               ),
             ],
           ),
@@ -869,7 +758,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                     ),
                     SizedBox(height: 16),
                     Text(
-                     'Enviando reporte...',
+                      'Enviando reporte...',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

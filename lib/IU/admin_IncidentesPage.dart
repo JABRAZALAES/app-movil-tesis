@@ -26,7 +26,7 @@ class AdminIncidentesPage extends StatefulWidget {
 }
 
 class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
-  static const String _baseUrl = 'http://10.3.1.112:3000/';
+  static const String _baseUrl = 'http://192.168.1.56:3000/';
   final IncidentesService _incidentesService = IncidentesService();
   List<dynamic> _incidentes = [];
   List<Map<String, dynamic>> _inconvenientes = [];
@@ -179,7 +179,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
 
     // Estados que requieren detalle
     final requiereDetalle = [
-      'EST_APROBADO',
+      'EST_RESUELTO',
       'EST_ANULADO',
       'EST_DEVUELTO',
       'EST_ESCALADO',
@@ -192,7 +192,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
           final controller = TextEditingController();
           String label = 'Detalle de resolución';
           if (nuevoEstado == 'EST_ANULADO') label = 'Motivo de anulación';
-          if (nuevoEstado == 'EST_APROBADO') label = 'Detalle de aprobación';
+          if (nuevoEstado == 'EST_RESUELTO') label = 'Detalle de resolución';
           if (nuevoEstado == 'EST_DEVUELTO') label = 'Detalle de devolución';
           if (nuevoEstado == 'EST_ESCALADO') label = 'Motivo de escalado';
 
@@ -256,7 +256,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
 
   Color _getEstadoColor(String? estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
+      case 'EST_RESUELTO':
         return AppColors.success;
       case 'EST_PENDIENTE':
         return AppColors.warning;
@@ -277,7 +277,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
 
   IconData _getEstadoIcon(String? estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
+      case 'EST_RESUELTO':
         return Icons.check_circle_rounded;
       case 'EST_PENDIENTE':
         return Icons.schedule_rounded;
@@ -298,8 +298,8 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
 
   String _getEstadoTexto(String? estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
-        return 'Aprobado';
+      case 'EST_RESUELTO':
+        return 'Resuelto';
       case 'EST_PENDIENTE':
         return 'Pendiente';
       case 'EST_ANULADO':
@@ -317,11 +317,37 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
   }
 
   List<dynamic> get _incidentesFiltrados {
-    if (_filtroEstado == 'TODOS') return _incidentes;
-    return _incidentes.where((incidente) {
-      final estado = (incidente['estadoId'] ?? '').toString().toUpperCase();
-      return estado == _filtroEstado;
-    }).toList();
+    List<dynamic> incidentesFiltrados;
+    
+    if (_filtroEstado == 'TODOS') {
+      incidentesFiltrados = List.from(_incidentes);
+    } else {
+      incidentesFiltrados = _incidentes.where((incidente) {
+        final estado = (incidente['estadoId'] ?? '').toString().toUpperCase();
+        return estado == _filtroEstado;
+      }).toList();
+    }
+    
+    // Ordenar del más nuevo al más viejo basándose en la fecha de reporte
+    incidentesFiltrados.sort((a, b) {
+      final fechaA = a['fechaReporte'] ?? a['fecha_reporte'] ?? '';
+      final fechaB = b['fechaReporte'] ?? b['fecha_reporte'] ?? '';
+      
+      if (fechaA.isEmpty && fechaB.isEmpty) return 0;
+      if (fechaA.isEmpty) return 1; // Los incidentes sin fecha van al final
+      if (fechaB.isEmpty) return -1;
+      
+      try {
+        final dateA = DateTime.parse(fechaA);
+        final dateB = DateTime.parse(fechaB);
+        return dateB.compareTo(dateA); // Orden descendente (más nuevo primero)
+      } catch (e) {
+        // Si hay error al parsear fechas, mantener el orden original
+        return 0;
+      }
+    });
+    
+    return incidentesFiltrados;
   }
 
   Widget _buildFiltros() {
@@ -340,8 +366,8 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
             ),
             const SizedBox(width: 12),
             _buildFiltroChip(
-              'EST_APROBADO',
-              'Aprobados',
+              'EST_RESUELTO',
+              'Resueltos',
               Icons.check_circle_rounded,
             ),
             const SizedBox(width: 12),
@@ -368,7 +394,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
           if (valor == 'TODOS') {
             return [
               'EST_PENDIENTE',
-              'EST_APROBADO',
+              'EST_RESUELTO',
               'EST_ANULADO',
               'EST_ESCALADO',
               'EST_MANTENIMIENTO'
@@ -865,7 +891,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
                                       ),
                                     ),
                                     PopupMenuItem(
-                                      value: 'EST_APROBADO',
+                                      value: 'EST_RESUELTO',
                                       child: Row(
                                         children: [
                                           Icon(
@@ -875,7 +901,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
                                           ),
                                           const SizedBox(width: 10),
                                           const Text(
-                                            'Marcar como Aprobado',
+                                            'Marcar como Resuelto',
                                             style: TextStyle(fontSize: 14),
                                           ),
                                         ],

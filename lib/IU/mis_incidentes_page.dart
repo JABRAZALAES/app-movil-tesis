@@ -18,7 +18,8 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
   String? _token;
 
   static const Color primaryColor = Color(0xFF667eea);
-  static const String baseUrl = 'http://10.3.1.112:3000/'; // Cambia por tu IP si es necesario
+  static const String baseUrl =
+      'http://192.168.1.56:3000/'; // Cambia por tu IP si es necesario
 
   @override
   void initState() {
@@ -47,8 +48,31 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
       _inconvenientes = await _service.obtenerInconvenientes(_token!);
 
       final incidentes = await _service.obtenerMisIncidentes(_token!);
+
+      // Ordenar incidentes del más nuevo al más viejo
+      final incidentesOrdenados = List.from(incidentes);
+      incidentesOrdenados.sort((a, b) {
+        final fechaA = a['fechaReporte'] ?? a['fecha_reporte'] ?? '';
+        final fechaB = b['fechaReporte'] ?? b['fecha_reporte'] ?? '';
+
+        if (fechaA.isEmpty && fechaB.isEmpty) return 0;
+        if (fechaA.isEmpty) return 1; // Los incidentes sin fecha van al final
+        if (fechaB.isEmpty) return -1;
+
+        try {
+          final dateA = DateTime.parse(fechaA);
+          final dateB = DateTime.parse(fechaB);
+          return dateB.compareTo(
+            dateA,
+          ); // Orden descendente (más nuevo primero)
+        } catch (e) {
+          // Si hay error al parsear fechas, mantener el orden original
+          return 0;
+        }
+      });
+
       setState(() {
-        _incidentes = incidentes;
+        _incidentes = incidentesOrdenados;
         _isLoading = false;
       });
     } catch (e) {
@@ -61,7 +85,7 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
 
   Color _getEstadoColor(String estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
+      case 'EST_RESUELTO':
         return Colors.green;
       case 'EST_PENDIENTE':
         return Colors.orange;
@@ -76,7 +100,7 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
       case 'EST_RECLAMADO':
         return Colors.amber;
       case 'EST_MANTENIMIENTO': // <-- Agrega este caso
-      return Colors.teal;      
+        return Colors.teal;
       default:
         return Colors.grey;
     }
@@ -84,7 +108,7 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
 
   IconData _getEstadoIcon(String estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
+      case 'EST_RESUELTO':
         return Icons.check_circle;
       case 'EST_PENDIENTE':
         return Icons.access_time;
@@ -98,7 +122,7 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
       case 'EST_RECLAMADO':
         return Icons.assignment_return;
       case 'EST_MANTENIMIENTO': // <-- Agrega este caso
-      return Icons.build; 
+        return Icons.build;
       default:
         return Icons.help_outline;
     }
@@ -106,8 +130,8 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
 
   String _getEstadoNombre(String estadoId) {
     switch (estadoId) {
-      case 'EST_APROBADO':
-        return 'Aprobado';
+      case 'EST_RESUELTO':
+        return 'Resuelto';
       case 'EST_PENDIENTE':
         return 'Pendiente';
       case 'EST_ANULADO':
@@ -120,8 +144,8 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
         return 'Escalado';
       case 'EST_RECLAMADO':
         return 'Reclamado';
-          case 'EST_MANTENIMIENTO': // <-- Agrega este caso
-      return 'Mantenimiento';
+      case 'EST_MANTENIMIENTO': // <-- Agrega este caso
+        return 'Mantenimiento';
       default:
         return 'Desconocido';
     }
@@ -178,20 +202,20 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
     return 'Sin inconveniente';
   }
 
-    void _mostrarDetalleIncidente(BuildContext context, dynamic incidente) {
-      // --- NUEVO: Prepara la URL de la imagen ---
-      String? urlFoto = incidente['urlFoto'];
-      if (urlFoto != null && urlFoto.trim().isNotEmpty) {
-        urlFoto = urlFoto.trim();
-        if (!urlFoto.startsWith('http')) {
-          if (urlFoto.startsWith('/')) {
-            urlFoto = urlFoto.substring(1);
-          }
-          urlFoto = baseUrl + urlFoto;
+  void _mostrarDetalleIncidente(BuildContext context, dynamic incidente) {
+    // --- NUEVO: Prepara la URL de la imagen ---
+    String? urlFoto = incidente['urlFoto'];
+    if (urlFoto != null && urlFoto.trim().isNotEmpty) {
+      urlFoto = urlFoto.trim();
+      if (!urlFoto.startsWith('http')) {
+        if (urlFoto.startsWith('/')) {
+          urlFoto = urlFoto.substring(1);
         }
-      } else {
-        urlFoto = null;
+        urlFoto = baseUrl + urlFoto;
       }
+    } else {
+      urlFoto = null;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -349,7 +373,8 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
                             // Laboratorio
                             _buildDetailSection(
                               'Laboratorio',
-                              incidente['laboratorio_id'] ?? 'No especificado',
+                              (incidente['laboratorio_id'] ?? 'No especificado')
+                                  .toString(),
                               Icons.science,
                             ),
                             const SizedBox(height: 16),
@@ -558,178 +583,174 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
     );
   }
 
- Widget _buildIncidenteCard(dynamic incidente) {
-  final estadoId = incidente['estadoId'] ?? 'EST_PENDIENTE';
-  final descripcion = incidente['descripcion'] ?? 'Sin descripción';
-  final laboratorio =
-      incidente['laboratorio_id'] ?? 'Laboratorio desconocido';
-  final fechaReporte = incidente['fecha_reporte'] ?? '';
-  final horaReporte = incidente['hora_reporte'] ?? '';
+  Widget _buildIncidenteCard(dynamic incidente) {
+    final estadoId = incidente['estadoId'] ?? 'EST_PENDIENTE';
+    final descripcion = incidente['descripcion'] ?? 'Sin descripción';
+final laboratorio = (incidente['laboratorio_id'] ?? 'Laboratorio desconocido').toString();
+    final fechaReporte = incidente['fecha_reporte'] ?? '';
+    final horaReporte = incidente['hora_reporte'] ?? '';
 
-  // Prepara la URL de la imagen para el icono de cámara
-  String? urlFoto = incidente['urlFoto'];
-  if (urlFoto != null && urlFoto.trim().isNotEmpty) {
-    urlFoto = urlFoto.trim();
-    if (!urlFoto.startsWith('http')) {
-      
-
-     {
-        urlFoto = urlFoto.substring(1);
+    // Prepara la URL de la imagen para el icono de cámara
+    String? urlFoto = incidente['urlFoto'];
+    if (urlFoto != null && urlFoto.trim().isNotEmpty) {
+      urlFoto = urlFoto.trim();
+      if (!urlFoto.startsWith('http')) {
+        {
+          urlFoto = urlFoto.substring(1);
+        }
+        urlFoto = baseUrl + urlFoto;
       }
-      urlFoto = baseUrl + urlFoto;
+    } else {
+      urlFoto = null;
     }
-  } else {
-    urlFoto = null;
-  }
 
-  return Card(
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: InkWell(
-      onTap: () => _mostrarDetalleIncidente(context, incidente),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: primaryColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.bug_report,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _obtenerDescripcionInconveniente(incidente),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        laboratorio,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getEstadoColor(estadoId).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _getEstadoColor(estadoId),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getEstadoIcon(estadoId),
-                        size: 12,
-                        color: _getEstadoColor(estadoId),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getEstadoNombre(estadoId),
-                        style: TextStyle(
-                          color: _getEstadoColor(estadoId),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                descripcion,
-                style: const TextStyle(fontSize: 14),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_formatearFecha(fechaReporte)} • ${_formatearHora(horaReporte)}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (urlFoto != null && urlFoto.isNotEmpty)
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _mostrarDetalleIncidente(context, incidente),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
-                      Icons.photo_camera,
-                      size: 12,
-                      color: Colors.green,
+                      Icons.bug_report,
+                      color: Colors.white,
+                      size: 20,
                     ),
                   ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 12,
-                  color: primaryColor,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _obtenerDescripcionInconveniente(incidente),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          laboratorio,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getEstadoColor(estadoId).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getEstadoColor(estadoId),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getEstadoIcon(estadoId),
+                          size: 12,
+                          color: _getEstadoColor(estadoId),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getEstadoNombre(estadoId),
+                          style: TextStyle(
+                            color: _getEstadoColor(estadoId),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
-          ],
+                child: Text(
+                  descripcion,
+                  style: const TextStyle(fontSize: 14),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_formatearFecha(fechaReporte)} • ${_formatearHora(horaReporte)}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (urlFoto != null && urlFoto.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.photo_camera,
+                        size: 12,
+                        color: Colors.green,
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: primaryColor,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-
+    );
   }
 
   Widget _buildResumenCard() {
     final resumen = _getResumenEstados();
     final totalIncidentes = _incidentes.length;
-    final aprobados = resumen['EST_APROBADO'] ?? 0;
+    final aprobados = resumen['EST_RESUELTO'] ?? 0;
     final pendientes = resumen['EST_PENDIENTE'] ?? 0;
 
     return Container(
