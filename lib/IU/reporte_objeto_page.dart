@@ -40,6 +40,7 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF1E293B);
+  // ignore: unused_field
   static const Color textSecondary = Color(0xFF64748B);
 
   @override

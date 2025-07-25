@@ -3,7 +3,7 @@ import 'package:recuperacion/IU/CambiarContrase%C3%B1a.dart';
 import 'package:recuperacion/IU/recuperacionContrase%C3%B1a.dart';
 import '../Services/auth_service.dart';
 import 'menu.dart';
-import 'dart:ui';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -106,6 +106,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           contrasena: _contrasenaController.text,
         );
 
+        // ignore: unnecessary_null_comparison
         if (datosLogin == null || datosLogin['usuario'] == null || datosLogin['token'] == null) {
           _mostrarError('Credenciales incorrectas. Verifica tu correo y contraseña.');
           return;
@@ -144,6 +145,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
         final tokenRegistro = datosRegistro['token'] ?? datosRegistro['usuario']?['token'];
 
+        // ignore: unnecessary_null_comparison
         if (datosRegistro == null || datosRegistro['usuario'] == null || 
             datosRegistro['usuario']['id'] == null || tokenRegistro == null) {
           _mostrarError('Error al crear la cuenta. Verifica los datos e intenta nuevamente.');

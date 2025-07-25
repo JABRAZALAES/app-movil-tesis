@@ -69,6 +69,7 @@ class _MenuPageState extends State<MenuPage>
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
