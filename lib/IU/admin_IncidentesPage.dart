@@ -4,8 +4,8 @@ import '../Services/incidentes_service.dart';
 
 // Colores y estilos armonizados con admin_ObjetosEncontrados.dart
 class AppColors {
-  static const Color primary = Color(0xFF0066B3);
-  static const Color primaryLight = Color(0xFF4A90D9);
+  static const Color primary = Color.fromARGB(255, 0, 33, 182);
+  static const Color primaryLight = Color.fromARGB(255, 16, 0, 243);
   static const Color error = Color(0xFFdc3545);
   static const Color success = Color(0xFF00B894); // Verde armónico
   static const Color warning = Color(0xFFFF6B35); // Naranja armónico

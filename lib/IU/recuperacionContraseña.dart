@@ -15,7 +15,7 @@ class _RecuperacionContrasenaPageState extends State<RecuperacionContrasenaPage>
   String? _mensaje;
 
   // Color principal más azul
-  final Color _primaryColor = const Color.fromRGBO(0, 102, 179, 1.0); // Equivalente a tu color
+  final Color _primaryColor = const Color.fromARGB(255, 0, 33, 182); // Equivalente a tu color
 
   Future<void> _enviarRecuperacion() async {
     setState(() {

@@ -265,9 +265,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF667eea),
-              Color(0xFF4B73E8),
-              Color(0xFF3b5998),
+              Color.fromARGB(255, 39, 0, 146),
+              Color.fromARGB(255, 13, 0, 189),
+              Color.fromARGB(255, 130, 128, 255),
             ],
             stops: [0.0, 0.6, 1.0],
           ),

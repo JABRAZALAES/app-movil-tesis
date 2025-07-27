@@ -20,7 +20,7 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
   bool _confirmarVisible = false;
 
   // Color principal más azul
-  final Color _primaryColor = const Color.fromRGBO(0, 102, 179, 1.0);
+  final Color _primaryColor = const Color.fromARGB(255, 0, 33, 182);
 
   Future<void> _cambiarContrasena() async {
     setState(() {

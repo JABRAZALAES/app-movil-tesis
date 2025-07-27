@@ -19,8 +19,8 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
   final String _baseUrl = 'http://192.168.1.56:3000/';
   late TabController _tabController;
 
-  static const Color primaryColor = Color(0xFF667eea);
-  static const Color secondaryColor = Color(0xFF4A90D9);
+  static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
+  static const Color secondaryColor = Color.fromARGB(255, 1, 5, 223);
   static const Color accentColor = Color(0xFF10B981);
   static const Color warningColor = Color(0xFFF59E0B);
   static const Color errorColor = Color(0xFFEF4444);

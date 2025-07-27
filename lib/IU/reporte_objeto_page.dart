@@ -35,8 +35,8 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  static const Color primaryColor = Color(0xFF667eea);
-  static const Color accentColor = Color(0xFF4A90E2);
+  static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
+  static const Color accentColor = Color.fromARGB(255, 11, 0, 172);
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF1E293B);

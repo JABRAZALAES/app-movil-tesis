@@ -55,7 +55,7 @@ class _PerfilPageState extends State<PerfilPage> {
           'Mi Perfil',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
-        backgroundColor: const Color(0xFF667eea),
+        backgroundColor: const Color.fromARGB(255, 0, 33, 182),
         centerTitle: true,
         elevation: 0,
         automaticallyImplyLeading: true,
@@ -71,7 +71,7 @@ class _PerfilPageState extends State<PerfilPage> {
             // Avatar simple
             const CircleAvatar(
               radius: 60,
-              backgroundColor: Color(0xFF667eea),
+              backgroundColor: Color.fromARGB(255, 6, 36, 170),
               child: Icon(Icons.person, size: 60, color: Colors.white),
             ),
             
@@ -148,7 +148,7 @@ class _PerfilPageState extends State<PerfilPage> {
         children: [
           Icon(
             icon,
-            color: const Color(0xFF667eea),
+            color: const Color.fromARGB(255, 3, 31, 156),
             size: 24,
           ),
           const SizedBox(width: 16),

@@ -83,7 +83,7 @@ class AuthService {
     required String nuevaContrasena,
   }) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.56:3000/api/auth/cambiar-contrasena'),
+      Uri.parse('http:/192.168.1.56:3000/api/auth/cambiar-contrasena'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

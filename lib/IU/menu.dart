@@ -123,7 +123,7 @@ class _MenuPageState extends State<MenuPage>
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
+                          colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 47, 255)],
                         ),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(32),
@@ -374,7 +374,7 @@ class _MenuPageState extends State<MenuPage>
                                     ),
 
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF667eea),
+                                      backgroundColor: Color.fromARGB(255, 0, 33, 182),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -402,7 +402,7 @@ class _MenuPageState extends State<MenuPage>
                                       style: TextStyle(fontSize: 14),
                                     ),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF667eea),
+                                      backgroundColor: Color.fromARGB(255, 0, 33, 182),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -493,7 +493,7 @@ class _MenuPageState extends State<MenuPage>
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
+                                colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 33, 182)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -503,7 +503,7 @@ class _MenuPageState extends State<MenuPage>
                               child: Icon(
                                 Icons.person,
                                 size: 24,
-                                color: const Color(0xFF667eea),
+                                color: const Color.fromARGB(255, 0, 33, 182),
                               ),
                             ),
                           ),
@@ -536,13 +536,13 @@ class _MenuPageState extends State<MenuPage>
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF667eea).withOpacity(0.1),
+                              color:Color.fromARGB(255, 0, 33, 182).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
                               Icons.settings,
                               size: 20,
-                              color: const Color(0xFF667eea),
+                              color: const Color.fromARGB(255, 0, 33, 182),
                             ),
                           ),
                         ],
@@ -632,7 +632,7 @@ class _MenuPageState extends State<MenuPage>
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF667eea), Color(0xFF4B73E8)],
+                              colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 33, 182)],
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),

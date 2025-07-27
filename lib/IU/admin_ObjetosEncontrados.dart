@@ -1,3 +1,4 @@
+// ignore: file_names
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -466,7 +467,7 @@ Future<String?> _mostrarDialogoEvidenciaEntrega(
                   isSelected
                       ? Colors.white.withOpacity(0.3)
                       : (estado == 'TODOS'
-                              ? const Color(0xFF0066B3)
+                              ? const Color.fromARGB(255, 0, 33, 182)
                               : _estadoColor(estado))
                           .withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
@@ -910,7 +911,7 @@ Future<String?> _mostrarDialogoEvidenciaEntrega(
           'Administrar Objetos',
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
         ),
-        backgroundColor: const Color(0xFF0066B3),
+        backgroundColor: const Color.fromARGB(255, 0, 33, 182),
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
