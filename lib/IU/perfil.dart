@@ -32,6 +32,8 @@ class _PerfilPageState extends State<PerfilPage> {
   String _formatearRol(String rol) {
     if (rol.toLowerCase() == 'jefe') {
       return 'Jefe de Laboratorios';
+    } else if (rol.toLowerCase() == 'normal') {
+      return 'Estudiante';
     }
     return rol.isNotEmpty ? rol[0].toUpperCase() + rol.substring(1).toLowerCase() : rol;
   }

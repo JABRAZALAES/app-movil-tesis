@@ -533,18 +533,7 @@ class _MenuPageState extends State<MenuPage>
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color:Color.fromARGB(255, 0, 33, 182).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.settings,
-                              size: 20,
-                              color: const Color.fromARGB(255, 0, 33, 182),
-                            ),
-                          ),
+                         
                         ],
                       ),
                     ),

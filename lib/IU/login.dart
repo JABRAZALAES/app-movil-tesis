@@ -3,6 +3,10 @@ import 'package:recuperacion/IU/CambiarContrase%C3%B1a.dart';
 import 'package:recuperacion/IU/recuperacionContrase%C3%B1a.dart';
 import '../Services/auth_service.dart';
 import 'menu.dart';
+import 'package:flutter/services.dart';
+
+
+
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -433,56 +437,85 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _construirCampoNombre() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        controller: _nombreController,
-        style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
-        decoration: InputDecoration(
-          labelText: 'Nombre completo',
-          labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
-          prefixIcon: const Icon(
-            Icons.person_outline,
-            color: Color(0xFF667eea),
-            size: 24,
-          ),
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
-          ),
+ Widget _construirCampoNombre() {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      controller: _nombreController,
+      style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(r"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]")
         ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Ingresa tu nombre completo';
-          }
-          if (value.trim().length < 2) {
-            return 'El nombre debe tener al menos 2 caracteres';
-          }
-          return null;
-        },
+      ],
+      decoration: InputDecoration(
+        labelText: 'Nombre completo',
+        labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
+        prefixIcon: const Icon(
+          Icons.person_outline,
+          color: Color(0xFF667eea),
+          size: 24,
+        ),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
+        ),
       ),
-    );
-  }
-
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Ingresa tu nombre completo';
+        }
+        
+        String nombreLimpio = value.trim();
+        
+        if (nombreLimpio.length < 2) {
+          return 'El nombre debe tener al menos 2 caracteres';
+        }
+        
+        // Validar que solo contenga letras válidas para nombres en español
+        RegExp nombreValido = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$");
+        if (!nombreValido.hasMatch(nombreLimpio)) {
+          return 'El nombre solo puede contener letras y espacios';
+        }
+        
+        // Validar que no tenga espacios múltiples consecutivos
+        if (nombreLimpio.contains(RegExp(r'\s{2,}'))) {
+          return 'No se permiten espacios múltiples consecutivos';
+        }
+        
+        // Validar que no empiece o termine con espacio
+        if (nombreLimpio.startsWith(' ') || nombreLimpio.endsWith(' ')) {
+          return 'El nombre no puede empezar o terminar con espacio';
+        }
+        
+        // Validar longitud máxima
+        if (nombreLimpio.length > 50) {
+          return 'El nombre no puede exceder 50 caracteres';
+        }
+        
+        return null;
+      },
+    ),
+  );
+}
   Widget _construirCampoCorreo() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -521,15 +554,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
           ),
         ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Ingresa tu correo electrónico';
-          }
-          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-            return 'Ingresa un correo válido';
-          }
-          return null;
-        },
+         validator: (value) {
+      if (value == null || value.trim().isEmpty) {
+        return 'Ingresa tu correo electrónico';
+      }
+      if (value.trim() != value) {
+        return 'No debe tener espacios al inicio o final';
+      }
+      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+        return 'Ingresa un correo válido';
+      }
+      return null;
+    },
       ),
     );
   }

@@ -16,7 +16,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://192.168.1.56:3000/';
+  final String _baseUrl = 'http://10.3.1.112:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
@@ -75,7 +75,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
     }
   }
 
- Future<void> _reclamarObjeto(dynamic objeto) async {
+Future<void> _reclamarObjeto(dynamic objeto) async {
   try {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
@@ -95,7 +95,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
       token: token,
     );
 
-    if (response['message']?.toString().toLowerCase().contains('exitosamente') == true) {
+    if (response['success'] == true) {
       await _cargarObjetos();
       showDialog(
         context: context,
@@ -113,11 +113,51 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
         ),
       );
     } else {
-      _showSnackBar(response['message'] ?? 'No se pudo reclamar el objeto.', isError: true);
+      // Muestra el error del backend en un AlertDialog bonito
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.error_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Error!'),
+            ],
+          ),
+          content: Text(response['message'] ?? 'No se pudo reclamar el objeto.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
     }
   } catch (e) {
-    _showSnackBar('Error al reclamar el objeto: $e', isError: true);
-  } finally {
+    showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Row(
+        children: const [
+          Icon(Icons.error_outline, color: Colors.red),
+          SizedBox(width: 8),
+          Text('Error!'),
+        ],
+      ),
+      content: const Text(
+        'No puede reclamar un objeto que usted reportó.',
+        style: TextStyle(fontSize: 15),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+} finally {
     setState(() => _isLoading = false);
   }
 }
@@ -551,7 +591,7 @@ class ObjetoPerdidoCard extends StatelessWidget {
   static const Color secondaryColor = Color(0xFF4A90D9);
   static const Color accentColor = Color(0xFF10B981);
   static const Color warningColor = Color(0xFFF59E0B);
-  static const Color errorColor = Color(0xFFEF4444);
+  static const Color errorColor = Color(0xFFEF4444); 
   static const Color infoColor = Color(0xFF6C5CE7);
 
   Color _estadoColor(String? estadoId) {
@@ -635,6 +675,7 @@ class ObjetoPerdidoCard extends StatelessWidget {
     } else {
       urlFoto = null;
     }
+    print('URL final de la imagen: $urlFoto');
 
     showModalBottomSheet(
       context: context,
