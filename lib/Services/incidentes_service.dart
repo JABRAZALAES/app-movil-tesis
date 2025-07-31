@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // <-- Agrega esto junto a tus otros imports
 import 'apiclient.dart';
 
 class IncidentesService {
@@ -129,24 +130,10 @@ Future<List<Map<String, dynamic>>> obtenerLaboratorios(String token) async {
   final headers = {'Authorization': 'Bearer $token'};
   final response = await _apiClient.get('laboratorios', customHeaders: headers);
   if (response is List) {
-    // ignore: unnecessary_cast
-    return (response as List)
-        .asMap()
-        .entries
-        .where((e) => e.value != null) // Filtra nulos
-        .map((e) => {
-              'id': (e.key + 1).toString(), // Siempre String
-              'nombre': (e.value ?? 'Sin nombre').toString(),
-            })
-        .toList();
+    // Devuelve la lista tal cual, asegurando que cada elemento es un Map
+    return List<Map<String, dynamic>>.from(response);
   } else if (response is Map<String, dynamic> && response.containsKey('data')) {
-    return List<Map<String, dynamic>>.from(response['data'])
-        .where((lab) => lab['id'] != null && lab['nombre'] != null)
-        .map((lab) => {
-              'id': lab['id'].toString(),
-              'nombre': lab['nombre'].toString(),
-            })
-        .toList();
+    return List<Map<String, dynamic>>.from(response['data']);
   } else {
     throw Exception('Error al obtener laboratorios');
   }
@@ -166,8 +153,6 @@ Future<List<Map<String, dynamic>>> obtenerComputadorasPorLaboratorio(String labo
     throw Exception('Error al obtener computadoras');
   }
 
-
-
 }
   Future<List<Map<String, dynamic>>> obtenerInconvenientes(String token) async {
     final headers = {'Authorization': 'Bearer $token'};
@@ -179,8 +164,30 @@ Future<List<Map<String, dynamic>>> obtenerComputadorasPorLaboratorio(String labo
     } else {
       throw Exception('Error al obtener inconvenientes');
     }
+    
+
+    
   }
+   Future<Map<String, dynamic>?> obtenerPeriodoActivo(String token) async {
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+    final response = await http.get(
+      Uri.parse('$baseUrl/periodos/activo'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true && data['data'] != null) {
+        return data['data'];
+      }
+    }
+    return null;
+  }
+
+}
 
 
   // ...existing code...
-} // <-- asegúrate de que todo esté dentro de la clase
+ // <-- asegúrate de que todo esté dentro de la clase

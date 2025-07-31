@@ -81,20 +81,24 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
     }
   }
 
-  Future<void> _cargarLaboratorios() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? widget.token;
-    if (token != null && token.isNotEmpty) {
-      try {
-        final labs = await _objetosService.obtenerLaboratorios(token);
-        setState(() {
-          _laboratorios = List<Map<String, dynamic>>.from(labs);
-        });
-      } catch (e) {
-        _mostrarError('Error al cargar laboratorios: $e');
-      }
+Future<void> _cargarLaboratorios() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token') ?? widget.token;
+  if (token != null && token.isNotEmpty) {
+    try {
+      final labs = await _objetosService.obtenerLaboratorios(token);
+      setState(() {
+        _laboratorios = List<Map<String, dynamic>>.from(labs);
+        // Selecciona el primero si no hay uno seleccionado
+        if (_laboratorios.isNotEmpty && (_laboratorioSeleccionado == null || _laboratorioSeleccionado!.isEmpty)) {
+          _laboratorioSeleccionado = _laboratorios.first['id'].toString();
+        }
+      });
+    } catch (e) {
+      _mostrarError('Error al cargar laboratorios: $e');
     }
   }
+}
 
   Future<void> _seleccionarImagen(ImageSource source) async {
     try {
@@ -251,6 +255,7 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
 
     setState(() {
       _isLoading = true;
+            print('Laboratorio seleccionado al enviar: $_laboratorioSeleccionado');
     });
 
     try {
@@ -316,15 +321,16 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
     }
   }
 
-  void _limpiarFormulario() {
-    _nombreController.clear();
-    _descripcionController.clear();
-    _ubicacionController.clear();
-    setState(() {
-      _imagen = null;
-      _laboratorioSeleccionado = null;
-    });
-  }
+void _limpiarFormulario() {
+  _nombreController.clear();
+  _descripcionController.clear();
+  _ubicacionController.clear();
+  setState(() {
+    _imagen = null;
+    // Selecciona el primer laboratorio si la lista no está vacía
+    _laboratorioSeleccionado = _laboratorios.isNotEmpty ? _laboratorios.first['id'].toString() : null;
+  });
+}
 
   void _mostrarError(String mensaje) {
     if (mounted) {
@@ -499,22 +505,22 @@ class _ReporteObjetoPageState extends State<ReporteObjetoPage>
                           title: 'Laboratorio',
                           icon: Icons.science,
                           child: DropdownButtonFormField<String>(
-                            value: _laboratorioSeleccionado,
-                            items: _laboratorios
-                                .map((lab) => DropdownMenuItem<String>(
-                                      value: lab['id'].toString(),
-                                      child: Text(lab['nombre'] ?? 'Sin nombre', style: const TextStyle(color: Colors.black)),
-                                    ))
-                                .toList(),
-                            onChanged: _isLoading ? null : (value) {
-                              setState(() {
-                                _laboratorioSeleccionado = value;
-                              });
-                            },
-                            decoration: _inputDecoration('Selecciona un laboratorio'),
-                            style: const TextStyle(color: Colors.black),
-                            dropdownColor: Colors.white,
-                          ),
+                      value: _laboratorioSeleccionado,
+  items: _laboratorios
+      .map((lab) => DropdownMenuItem<String>(
+            value: lab['id'].toString(),
+            child: Text(lab['nombre'] ?? 'Sin nombre', style: const TextStyle(color: Colors.black)),
+          ))
+      .toList(),
+  onChanged: _isLoading ? null : (value) {
+    setState(() {
+      _laboratorioSeleccionado = value;
+    });
+  },
+  decoration: _inputDecoration('Selecciona un laboratorio'),
+  style: const TextStyle(color: Colors.black),
+  dropdownColor: Colors.white,
+),
                         ),
                         _buildSection(
                           title: 'Foto del Objeto ',

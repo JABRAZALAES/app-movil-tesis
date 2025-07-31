@@ -26,10 +26,11 @@ class AdminIncidentesPage extends StatefulWidget {
 }
 
 class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
-  static const String _baseUrl = 'http://10.3.1.112:3000/';
+  static const String _baseUrl = 'http://192.168.1.56:3000/';
   final IncidentesService _incidentesService = IncidentesService();
   List<dynamic> _incidentes = [];
   List<Map<String, dynamic>> _inconvenientes = [];
+    List<Map<String, dynamic>> _laboratorios = [];
   bool _cargando = true;
   String? _token;
   String? _rol;
@@ -102,41 +103,69 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
     await _cargarIncidentes();
     await _cargarInconvenientes();
   }
-
-  Future<void> _cargarIncidentes() async {
-    if (!mounted) return;
-
-    setState(() => _cargando = true);
-    try {
-      if (_token == null) {
-        throw Exception('Token no encontrado');
-      }
-
-      final incidentes = await _incidentesService.obtenerIncidentes(_token!);
-
-      if (mounted) {
-        setState(() {
-          _incidentes = incidentes;
-          _cargando = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _cargando = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar incidentes: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    }
+    String _obtenerNombreLaboratorio(dynamic incidente) {
+    final labId = incidente['laboratorio_id']?.toString();
+    final lab = _laboratorios.firstWhere(
+      (l) => l['id'].toString() == labId,
+      orElse: () => {},
+    );
+    return lab.isNotEmpty ? (lab['nombre'] ?? 'Laboratorio desconocido') : 'Laboratorio desconocido';
   }
 
+    Future<void> _cargarIncidentes() async {
+    setState(() => _cargando = true);
+    try {
+      if (_token == null) throw Exception('Token no encontrado');
+  
+      // 1. Obtener periodo académico activo
+      final periodo = await _incidentesService.obtenerPeriodoActivo(_token!);
+      if (periodo == null) {
+        setState(() {
+          _incidentes = [];
+          _cargando = false;
+        });
+        return;
+      }
+      final idPeriodoActual = periodo['id'].toString();
+    _laboratorios = await _incidentesService.obtenerLaboratorios(_token!);
+      // 2. Obtener todos los incidentes
+      final incidentes = await _incidentesService.obtenerIncidentes(_token!);
+  
+      // 3. Filtrar:
+      // - Todos los incidentes del periodo activo
+      // - Incidentes pendientes de periodos anteriores
+      final incidentesFiltrados = incidentes.where((inc) {
+        final periodoId = inc['periodo_academico_id']?.toString();
+        final estado = (inc['estadoId'] ?? '').toString().toUpperCase();
+  
+        // Si es del periodo actual, mostrar todos
+        if (periodoId == idPeriodoActual) return true;
+  
+        // Si es de periodo anterior y pendiente, mostrar
+        if (estado == 'EST_PENDIENTE') return true;
+  
+        // Si no cumple, no mostrar
+        return false;
+      }).toList();
+  
+      setState(() {
+        _incidentes = incidentesFiltrados;
+        _cargando = false;
+      });
+    } catch (e) {
+      setState(() => _cargando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar incidentes: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
   Future<void> _cargarInconvenientes() async {
     if (_token == null) return;
     try {
@@ -541,7 +570,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
   Widget _buildIncidenteCard(dynamic incidente) {
     final estadoId = (incidente['estadoId'] ?? '').toString().toUpperCase();
     final descripcion = incidente['descripcion'] ?? 'Sin descripción';
-    final laboratorio = incidente['laboratorio'] ?? 'Laboratorio desconocido';
+final laboratorio = _obtenerNombreLaboratorio(incidente);
     final fechaReporte =
         (incidente['fechaReporte'] ?? incidente['fecha_reporte'] ?? '')
             .toString();
@@ -1042,11 +1071,10 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
                               children: [
                                 Expanded(
                                   child: _buildDetailSection(
-                                    'Laboratorio',
-                                    incidente['laboratorio'] ??
-                                        'No especificado',
-                                    Icons.science,
-                                  ),
+  'Laboratorio',
+  _obtenerNombreLaboratorio(incidente),
+  Icons.science,
+),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -1219,7 +1247,7 @@ class _AdminIncidentesPageState extends State<AdminIncidentesPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Incidentes (Técnico/Jefe/Admin)',
+          'Administrar Incidentes',
           style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
         backgroundColor: AppColors.primary,

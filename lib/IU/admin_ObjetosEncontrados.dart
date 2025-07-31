@@ -54,28 +54,52 @@ class _AdminObjetosEncontradosPageState
     await _cargarObjetos();
   }
 
-  Future<void> _cargarObjetos() async {
-    setState(() => _cargando = true);
-    try {
-      final objetos = await _objetosService.obtenerObjetosPerdidos();
+Future<void> _cargarObjetos() async {
+  setState(() => _cargando = true);
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    // 1. Obtener periodo académico activo
+    final periodo = await _objetosService.obtenerPeriodoActivo(token!);
+    if (periodo == null) {
       setState(() {
-        _objetos = objetos;
+        _objetos = [];
         _cargando = false;
       });
-    } catch (e) {
-      setState(() => _cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al cargar objetos: $e'),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
+      return;
     }
+    final idPeriodoActual = periodo['id'].toString();
+
+    // 2. Obtener todos los objetos
+    final objetos = await _objetosService.obtenerObjetosPerdidos();
+
+    // 3. Filtrar: solo en custodia o pendientes del periodo actual
+    final objetosFiltrados = objetos.where((obj) {
+      final estado = obj['estadoId']?.toString();
+      final periodoId = obj['periodo_academico_id']?.toString();
+      return (estado == 'EST_EN_CUSTODIA' || estado == 'EST_PENDIENTE')
+          && periodoId == idPeriodoActual;
+    }).toList();
+
+    setState(() {
+      _objetos = objetosFiltrados;
+      _cargando = false;
+    });
+  } catch (e) {
+    setState(() => _cargando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al cargar objetos: $e'),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
   }
+}
 
   Future<void> _aprobarObjeto(int id) async {
     if (_token == null) return;

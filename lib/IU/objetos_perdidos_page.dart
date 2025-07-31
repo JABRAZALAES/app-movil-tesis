@@ -13,10 +13,11 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
   final ObjetosPerdidosService _service = ObjetosPerdidosService();
   List<dynamic> _objetosDisponibles = [];
   List<dynamic> _misObjetos = [];
+    List<Map<String, dynamic>> _laboratorios = [];
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://10.3.1.112:3000/';
+  final String _baseUrl = 'http://192.168.1.56:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
@@ -40,40 +41,74 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
     super.dispose();
   }
 
-  Future<void> _cargarObjetos() async {
-    try {
+
+String _obtenerNombreLaboratorio(dynamic objeto) {
+  final labId = objeto['laboratorio_id']?.toString();
+  final lab = _laboratorios.firstWhere(
+    (l) => l['id'].toString() == labId,
+    orElse: () => {},
+  );
+  print('Buscando labId: $labId en $_laboratorios. Resultado: $lab');
+  return lab.isNotEmpty ? (lab['nombre'] ?? 'Laboratorio desconocido') : 'Laboratorio desconocido';
+}
+
+Future<void> _cargarObjetos() async {
+  try {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    
+
+    // 1. Obtener periodo académico activo
+    final periodo = await _service.obtenerPeriodoActivo(token!);
+    if (periodo == null) {
       setState(() {
-        _isLoading = true;
-        _error = '';
-      });
-
-      final prefs = await SharedPreferences.getInstance();
-      _userId = prefs.getString('user_id');
-
-      final objetos = await _service.obtenerObjetosAprobados();
-
-      final disponibles = objetos.where((obj) =>
-        obj['estadoId'] == 'EST_EN_CUSTODIA' &&
-        (obj['usuario_reclamante_id'] == null || obj['usuario_reclamante_id'].toString().isEmpty)
-      ).toList();
-
-      final misObjetos = objetos.where((obj) =>
-        obj['usuarioReclamanteId']?.toString() == _userId &&
-        (obj['estadoId'] == 'EST_RECLAMADO' || obj['estadoId'] == 'EST_DEVUELTO')
-      ).toList();
-
-      setState(() {
-        _objetosDisponibles = disponibles;
-        _misObjetos = misObjetos;
+        _error = 'No hay periodo académico activo';
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = 'Error al cargar los objetos: $e';
-        _isLoading = false;
-      });
+      return;
     }
+    final idPeriodoActual = periodo['id'].toString();
+    _laboratorios = await _service.obtenerLaboratorios(token);
+
+    // 2. Obtener objetos aprobados
+    final objetos = await _service.obtenerObjetosAprobados();
+    // Cargar laboratorios
+
+
+    // 3. Filtrar disponibles: solo en custodia y del periodo actual
+    final disponibles = objetos.where((obj) =>
+      obj['estadoId'] == 'EST_EN_CUSTODIA' &&
+      obj['periodo_academico_id']?.toString() == idPeriodoActual &&
+      (obj['usuario_reclamante_id'] == null || obj['usuario_reclamante_id'].toString().isEmpty)
+    ).toList();
+
+    // 4. Filtrar mis objetos: en custodia o reclamados, del periodo actual, y reclamados por mí
+    final misObjetos = objetos.where((obj) =>
+      obj['usuario_reclamante_id']?.toString() == _userId &&
+      obj['periodo_academico_id']?.toString() == idPeriodoActual &&
+      (obj['estadoId'] == 'EST_EN_CUSTODIA' || obj['estadoId'] == 'EST_RECLAMADO')
+    ).toList();
+
+    setState(() {
+      _objetosDisponibles = disponibles;
+      _misObjetos = misObjetos;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _error = 'Error al cargar los objetos: $e';
+      _isLoading = false;
+    });
   }
+    print(_objetosDisponibles.map((o) => o['laboratorio_id']).toList());
+  print(_laboratorios);
+}
 
 Future<void> _reclamarObjeto(dynamic objeto) async {
   try {
@@ -324,6 +359,7 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: ObjetoPerdidoCard(
                       objeto: _objetosDisponibles[index],
+                      laboratorioNombre: _obtenerNombreLaboratorio(_objetosDisponibles[index]),
                       onReclamar: () => _reclamarObjeto(_objetosDisponibles[index]),
                       tipoCard: TipoCard.disponible,
                       baseUrl: _baseUrl,
@@ -576,6 +612,7 @@ enum TipoCard { disponible, mio }
 class ObjetoPerdidoCard extends StatelessWidget {
   final dynamic objeto;
   final VoidCallback? onReclamar;
+    final String? laboratorioNombre; 
   final TipoCard tipoCard;
   final String baseUrl;
 
@@ -585,6 +622,7 @@ class ObjetoPerdidoCard extends StatelessWidget {
     this.onReclamar,
     required this.tipoCard,
     required this.baseUrl,
+        this.laboratorioNombre,
   });
 
   static const Color primaryColor = Color(0xFF0066B3);
@@ -811,14 +849,16 @@ class ObjetoPerdidoCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
+
                         // Laboratorio
-                        if (objeto['laboratorio'] != null)
+                        
                           _buildDetailSection(
                             'Laboratorio',
-                            objeto['laboratorio'],
+                            laboratorioNombre ?? 'Laboratorio desconocido',
                             Icons.science,
                           ),
-                        if (objeto['laboratorio'] != null) const SizedBox(height: 16),
+                          const SizedBox(height: 16),
+                   
 
                         // Estado
                         _buildDetailSection(
@@ -1038,7 +1078,10 @@ class ObjetoPerdidoCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 _buildInfoRow(Icons.science, 'Lab: ${objeto['laboratorio']}', infoColor),
               ],
-
+              if (laboratorioNombre != null && laboratorioNombre!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow(Icons.business, laboratorioNombre!, infoColor),
+              ],
               const SizedBox(height: 20),
 
               // Botón de acción o estado

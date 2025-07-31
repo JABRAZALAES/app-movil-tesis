@@ -21,7 +21,7 @@ class ObjetosPerdidosService {
       'nombre_objeto': nombreObjeto,
       'descripcion': descripcion,
       'lugar': lugar,
-      'laboratorio': laboratorio,
+      'laboratorio_id': laboratorio,
       'estadoId': estadoId,
     };
 
@@ -126,8 +126,7 @@ Future<List<Map<String, dynamic>>> obtenerLaboratorios(String token) async {
   }
   return [];
 }
-  // Método para borrar un objeto perdido
-  // ...existing code...
+
 
   Future<bool> borrarObjetoPerdido({
     required int id,
@@ -185,6 +184,19 @@ Future<Map<String, dynamic>> subirEvidenciaEntrega({
     // No necesitas imageFieldName porque tu método ya usa 'urlFoto'
   );
 }
+  Future<Map<String, dynamic>?> obtenerPeriodoActivo(String token) async {
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+    // Usa el método get de tu ApiClient, solo pasas el endpoint relativo
+    final response = await _apiClient.get('periodos/activo', customHeaders: headers);
+    if (response is Map<String, dynamic> && response['success'] == true && response['data'] != null) {
+      return response['data'];
+    }
+    return null;
+  }
+
 
 
 }

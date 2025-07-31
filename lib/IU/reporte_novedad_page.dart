@@ -496,42 +496,26 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                     icon: Icons.location_on,
                                     child: Column(
                                       children: [
-                                        DropdownButtonFormField<String>(
-                                          value: _laboratorioId,
-                                          isExpanded: true,
-                                          items:
-                                              _laboratorios
-                                                  .map(
-                                                    (lab) => DropdownMenuItem<
-                                                      String
-                                                    >(
-                                                      value:
-                                                          lab['id']
-                                                              .toString(), // Usa el ID como value
-                                                      child: Text(
-                                                        lab['nombre'] ??
-                                                            'Sin nombre',
-                                                      ),
-                                                    ),
-                                                  )
-                                                  .toList(),
-                                          decoration: _buildInputDecoration(
-                                            'Laboratorio',
-                                          ),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _laboratorioId = value;
-                                              _computadoraId = null;
-                                              _computadoras = [];
-                                            });
-                                            _cargarComputadoras();
-                                          },
-                                          validator:
-                                              (value) =>
-                                                  value == null
-                                                      ? 'Campo requerido'
-                                                      : null,
+                                                                         DropdownButtonFormField<String>(
+                                      value: _laboratorioId,
+                                      isExpanded: true,
+                                      items: _laboratorios.map(
+                                        (lab) => DropdownMenuItem<String>(
+                                          value: lab['id'].toString(), // Usa el id autoincremental
+                                          child: Text(lab['nombre'] ?? 'Sin nombre'),
                                         ),
+                                      ).toList(),
+                                      decoration: _buildInputDecoration('Laboratorio'),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _laboratorioId = value;
+                                          _computadoraId = null;
+                                          _computadoras = [];
+                                        });
+                                        _cargarComputadoras();
+                                      },
+                                      validator: (value) => value == null ? 'Campo requerido' : null,
+                                    ),
                                         if (_computadoras.isNotEmpty) ...[
                                           const SizedBox(height: 16),
                                           DropdownButtonFormField<int>(
