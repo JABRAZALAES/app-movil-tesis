@@ -9,15 +9,16 @@ class ObjetosPerdidosPage extends StatefulWidget {
   State<ObjetosPerdidosPage> createState() => _ObjetosPerdidosPageState();
 }
 
-class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerProviderStateMixin {
+class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
+    with TickerProviderStateMixin {
   final ObjetosPerdidosService _service = ObjetosPerdidosService();
   List<dynamic> _objetosDisponibles = [];
   List<dynamic> _misObjetos = [];
-    List<Map<String, dynamic>> _laboratorios = [];
+  List<Map<String, dynamic>> _laboratorios = [];
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://192.168.1.56:3000/';
+  final String _baseUrl = 'http://10.3.1.112:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
@@ -41,83 +42,94 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage> with TickerPr
     super.dispose();
   }
 
+  String _obtenerNombreLaboratorio(dynamic objeto) {
+    final labId = objeto['laboratorio_id']?.toString();
+    final lab = _laboratorios.firstWhere(
+      (l) => l['id'].toString() == labId,
+      orElse: () => {},
+    );
+    print('Buscando labId: $labId en $_laboratorios. Resultado: $lab');
+    return lab.isNotEmpty
+        ? (lab['nombre'] ?? 'Laboratorio desconocido')
+        : 'Laboratorio desconocido';
+  }
 
-String _obtenerNombreLaboratorio(dynamic objeto) {
-  final labId = objeto['laboratorio_id']?.toString();
-  final lab = _laboratorios.firstWhere(
-    (l) => l['id'].toString() == labId,
-    orElse: () => {},
-  );
-  print('Buscando labId: $labId en $_laboratorios. Resultado: $lab');
-  return lab.isNotEmpty ? (lab['nombre'] ?? 'Laboratorio desconocido') : 'Laboratorio desconocido';
-}
-
-Future<void> _cargarObjetos() async {
-  try {
-    setState(() {
-      _isLoading = true;
-      _error = '';
-    });
-
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getString('user_id');
-    final token = prefs.getString('token');
-    
-
-    // 1. Obtener periodo académico activo
-    final periodo = await _service.obtenerPeriodoActivo(token!);
-    if (periodo == null) {
+  Future<void> _cargarObjetos() async {
+    try {
       setState(() {
-        _error = 'No hay periodo académico activo';
+        _isLoading = true;
+        _error = '';
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('user_id');
+      final token = prefs.getString('token');
+
+      // 1. Obtener periodo académico activo
+      final periodo = await _service.obtenerPeriodoActivo(token!);
+      if (periodo == null) {
+        setState(() {
+          _error = 'No hay periodo académico activo';
+          _isLoading = false;
+        });
+        return;
+      }
+      final idPeriodoActual = periodo['id'].toString();
+      _laboratorios = await _service.obtenerLaboratorios(token);
+
+      // 2. Obtener objetos aprobados
+      final objetos = await _service.obtenerObjetosAprobados();
+      // Cargar laboratorios
+
+      // 3. Filtrar disponibles: solo en custodia y del periodo actual
+      final disponibles =
+          objetos
+              .where(
+                (obj) =>
+                    obj['estadoId'] == 'EST_EN_CUSTODIA' &&
+                    obj['periodo_academico_id']?.toString() ==
+                        idPeriodoActual &&
+                    (obj['usuario_reclamante_id'] == null ||
+                        obj['usuario_reclamante_id'].toString().isEmpty),
+              )
+              .toList();
+
+      // 4. Filtrar mis objetos: en custodia o reclamados, del periodo actual, y reclamados por mí
+      final misObjetos =
+          objetos
+              .where(
+                (obj) =>
+                    obj['usuario_reclamante_id']?.toString() == _userId &&
+                    obj['periodo_academico_id']?.toString() ==
+                        idPeriodoActual &&
+                    (obj['estadoId'] == 'EST_EN_CUSTODIA' ||
+                        obj['estadoId'] == 'EST_RECLAMADO'),
+              )
+              .toList();
+
+      setState(() {
+        _objetosDisponibles = disponibles;
+        _misObjetos = misObjetos;
         _isLoading = false;
       });
-      return;
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar los objetos: $e';
+        _isLoading = false;
+      });
     }
-    final idPeriodoActual = periodo['id'].toString();
-    _laboratorios = await _service.obtenerLaboratorios(token);
-
-    // 2. Obtener objetos aprobados
-    final objetos = await _service.obtenerObjetosAprobados();
-    // Cargar laboratorios
-
-
-    // 3. Filtrar disponibles: solo en custodia y del periodo actual
-    final disponibles = objetos.where((obj) =>
-      obj['estadoId'] == 'EST_EN_CUSTODIA' &&
-      obj['periodo_academico_id']?.toString() == idPeriodoActual &&
-      (obj['usuario_reclamante_id'] == null || obj['usuario_reclamante_id'].toString().isEmpty)
-    ).toList();
-
-    // 4. Filtrar mis objetos: en custodia o reclamados, del periodo actual, y reclamados por mí
-    final misObjetos = objetos.where((obj) =>
-      obj['usuario_reclamante_id']?.toString() == _userId &&
-      obj['periodo_academico_id']?.toString() == idPeriodoActual &&
-      (obj['estadoId'] == 'EST_EN_CUSTODIA' || obj['estadoId'] == 'EST_RECLAMADO')
-    ).toList();
-
-    setState(() {
-      _objetosDisponibles = disponibles;
-      _misObjetos = misObjetos;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _error = 'Error al cargar los objetos: $e';
-      _isLoading = false;
-    });
-  }
     print(_objetosDisponibles.map((o) => o['laboratorio_id']).toList());
-  print(_laboratorios);
-}
-
+    print(_laboratorios);
+  }
 Future<void> _reclamarObjeto(dynamic objeto) async {
   try {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
     final token = prefs.getString('token');
-    
+
     if (userId == null || token == null) {
+      // Solo aquí usa SnackBar
       _showSnackBar('No se pudo identificar el usuario.', isError: true);
       setState(() => _isLoading = false);
       return;
@@ -130,88 +142,85 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
       token: token,
     );
 
-    if (response['success'] == true) {
-      await _cargarObjetos();
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('¡Objeto reclamado!'),
-          content: const Text(
-            'Tienes 1 hora para retirar el objeto. Si no lo haces, el reclamo expirará y el objeto volverá a estar disponible para otros usuarios.'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Aceptar'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // Muestra el error del backend en un AlertDialog bonito
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: const [
-              Icon(Icons.error_outline, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Error!'),
-            ],
-          ),
-          content: Text(response['message'] ?? 'No se pudo reclamar el objeto.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      );
-    }
-  } catch (e) {
+    final mensaje = response['message']?.toString().toLowerCase() ?? '';
+    final esExito = mensaje.contains('exitosamente');
+
+    // Solo muestra el AlertDialog, no el SnackBar
     showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Row(
-        children: const [
-          Icon(Icons.error_outline, color: Colors.red),
-          SizedBox(width: 8),
-          Text('Error!'),
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(esExito ? '¡Objeto reclamado!' : 'Error'),
+        content: Text(
+          esExito 
+            ? '${response['message'] ?? 'Objeto reclamado exitosamente.'}\n\n⏰ Importante: Tienes 1 hora para retirar el objeto de la Jefatura de Laboratorios.'
+            : response['message'] ?? 'No se pudo reclamar el objeto.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
         ],
       ),
-      content: const Text(
-        'No puede reclamar un objeto que usted reportó.',
-        style: TextStyle(fontSize: 15),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cerrar'),
+    );
+
+    if (esExito) {
+      await _cargarObjetos();
+    }
+  } catch (e) {
+    // Solo muestra el AlertDialog de error
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Error!'),
+          ],
         ),
-      ],
-    ),
-  );
-} finally {
+        content: Text(
+          'Ocurrió un error al reclamar el objeto.\n${e.toString()}',
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  } finally {
     setState(() => _isLoading = false);
   }
-}
-  void _showSnackBar(String message, {bool isError = false, bool isSuccess = false}) {
+}  void _showSnackBar(
+    String message, {
+    bool isError = false,
+    bool isSuccess = false,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Icon(
-              isError ? Icons.error_outline : 
-              isSuccess ? Icons.check_circle_outline : Icons.info_outline,
+              isError
+                  ? Icons.error_outline
+                  : isSuccess
+                  ? Icons.check_circle_outline
+                  : Icons.info_outline,
               color: Colors.white,
             ),
             const SizedBox(width: 8),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: isError ? errorColor : 
-                        isSuccess ? accentColor : secondaryColor,
+        backgroundColor:
+            isError
+                ? errorColor
+                : isSuccess
+                ? accentColor
+                : secondaryColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -247,11 +256,7 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
               Icons.search,
             ),
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.white.withOpacity(0.3),
-          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
           Expanded(
             child: _buildStatItem(
               'Mis Objetos',
@@ -279,10 +284,7 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
         ),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
         ),
       ],
     );
@@ -346,7 +348,8 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
               child: _buildEmptyState(
                 icon: Icons.search_off_rounded,
                 title: 'No hay objetos disponibles',
-                subtitle: 'Por el momento no hay objetos perdidos\naprobados para reclamar.',
+                subtitle:
+                    'Por el momento no hay objetos perdidos\naprobados para reclamar.',
                 color: infoColor,
               ),
             )
@@ -359,8 +362,11 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: ObjetoPerdidoCard(
                       objeto: _objetosDisponibles[index],
-                      laboratorioNombre: _obtenerNombreLaboratorio(_objetosDisponibles[index]),
-                      onReclamar: () => _reclamarObjeto(_objetosDisponibles[index]),
+                      laboratorioNombre: _obtenerNombreLaboratorio(
+                        _objetosDisponibles[index],
+                      ),
+                      onReclamar:
+                          () => _reclamarObjeto(_objetosDisponibles[index]),
                       tipoCard: TipoCard.disponible,
                       baseUrl: _baseUrl,
                     ),
@@ -393,7 +399,10 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
                       color: secondaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.person_outline, color: secondaryColor),
+                    child: const Icon(
+                      Icons.person_outline,
+                      color: secondaryColor,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -427,7 +436,8 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
               child: _buildEmptyState(
                 icon: Icons.inbox_outlined,
                 title: 'No has reclamado objetos',
-                subtitle: 'Cuando reclames un objeto aparecerá\naquí con su estado actual.',
+                subtitle:
+                    'Cuando reclames un objeto aparecerá\naquí con su estado actual.',
                 color: warningColor,
               ),
             )
@@ -455,8 +465,8 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
   }
 
   Widget _buildEmptyState({
-    required IconData icon, 
-    required String title, 
+    required IconData icon,
+    required String title,
     required String subtitle,
     required Color color,
   }) {
@@ -478,8 +488,8 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
             Text(
               title,
               style: const TextStyle(
-                fontSize: 20, 
-                fontWeight: FontWeight.bold, 
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF1F2937),
               ),
               textAlign: TextAlign.center,
@@ -488,7 +498,7 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
             Text(
               subtitle,
               style: const TextStyle(
-                fontSize: 14, 
+                fontSize: 14,
                 color: Color(0xFF6B7280),
                 height: 1.5,
               ),
@@ -518,14 +528,8 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(
-              icon: Icon(Icons.inventory_2_outlined),
-              text: 'Disponibles',
-            ),
-            Tab(
-              icon: Icon(Icons.person_outline),
-              text: 'Mis Objetos',
-            ),
+            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Disponibles'),
+            Tab(icon: Icon(Icons.person_outline), text: 'Mis Objetos'),
           ],
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
@@ -533,75 +537,80 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
           indicatorWeight: 3,
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: primaryColor),
-                  SizedBox(height: 16),
-                  Text(
-                    'Cargando objetos...',
-                    style: TextStyle(color: Color(0xFF6B7280)),
-                  ),
-                ],
-              ),
-            )
-          : _error.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: errorColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.error_outline, size: 48, color: errorColor),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Error al cargar',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _error,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: errorColor),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _cargarObjetos,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : TabBarView(
-                  controller: _tabController,
+      body:
+          _isLoading
+              ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildDisponiblesTab(),
-                    _buildMisObjetosTab(),
+                    CircularProgressIndicator(color: primaryColor),
+                    SizedBox(height: 16),
+                    Text(
+                      'Cargando objetos...',
+                      style: TextStyle(color: Color(0xFF6B7280)),
+                    ),
                   ],
                 ),
+              )
+              : _error.isNotEmpty
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: errorColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: errorColor,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Error al cargar',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _error,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: errorColor),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _cargarObjetos,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              : TabBarView(
+                controller: _tabController,
+                children: [_buildDisponiblesTab(), _buildMisObjetosTab()],
+              ),
     );
   }
 }
@@ -612,7 +621,7 @@ enum TipoCard { disponible, mio }
 class ObjetoPerdidoCard extends StatelessWidget {
   final dynamic objeto;
   final VoidCallback? onReclamar;
-    final String? laboratorioNombre; 
+  final String? laboratorioNombre;
   final TipoCard tipoCard;
   final String baseUrl;
 
@@ -622,14 +631,14 @@ class ObjetoPerdidoCard extends StatelessWidget {
     this.onReclamar,
     required this.tipoCard,
     required this.baseUrl,
-        this.laboratorioNombre,
+    this.laboratorioNombre,
   });
 
   static const Color primaryColor = Color(0xFF0066B3);
   static const Color secondaryColor = Color(0xFF4A90D9);
   static const Color accentColor = Color(0xFF10B981);
   static const Color warningColor = Color(0xFFF59E0B);
-  static const Color errorColor = Color(0xFFEF4444); 
+  static const Color errorColor = Color(0xFFEF4444);
   static const Color infoColor = Color(0xFF6C5CE7);
 
   Color _estadoColor(String? estadoId) {
@@ -719,221 +728,249 @@ class ObjetoPerdidoCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          _estadoIcon(objeto['estadoId']),
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _estadoIcon(objeto['estadoId']),
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  objeto['nombre_objeto'] ?? 'Sin nombre',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                Text(
+                                  'ID: ${objeto['id']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              objeto['nombre_objeto'] ?? 'Sin nombre',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
+                            // Estado
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _estadoColor(
+                                  objeto['estadoId'],
+                                ).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _estadoColor(objeto['estadoId']),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _estadoIcon(objeto['estadoId']),
+                                    size: 16,
+                                    color: _estadoColor(objeto['estadoId']),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _estadoTexto(
+                                      objeto['estadoId'],
+                                    ).toUpperCase(),
+                                    style: TextStyle(
+                                      color: _estadoColor(objeto['estadoId']),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              'ID: ${objeto['id']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                            const SizedBox(height: 20),
+
+                            // Descripción
+                            _buildDetailSection(
+                              'Descripción',
+                              objeto['descripcion'] ?? 'Sin descripción',
+                              Icons.description,
                             ),
+                            const SizedBox(height: 16),
+
+                            // Lugar
+                            _buildDetailSection(
+                              'Lugar',
+                              objeto['lugar'] ?? 'Sin ubicación',
+                              Icons.location_on,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Laboratorio
+                            _buildDetailSection(
+                              'Laboratorio',
+                              laboratorioNombre ?? 'Laboratorio desconocido',
+                              Icons.science,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Estado
+                            _buildDetailSection(
+                              'Estado',
+                              _estadoTexto(objeto['estadoId']),
+                              _estadoIcon(objeto['estadoId']),
+                            ),
+                            if (_estadoDescripcion(
+                              objeto['estadoId'],
+                            ).isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 16,
+                                ),
+                                child: Text(
+                                  _estadoDescripcion(objeto['estadoId']),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                              ),
+
+                            // Fecha
+                            _buildDetailSection(
+                              'Fecha de pérdida',
+                              _formatearFecha(objeto['fecha_perdida']),
+                              Icons.calendar_today,
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Imagen (si existe)
+                            if (urlFoto != null && urlFoto.isNotEmpty)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Evidencia Fotográfica',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      urlFoto,
+                                      width: double.infinity,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (
+                                        context,
+                                        error,
+                                        stackTrace,
+                                      ) {
+                                        return Container(
+                                          height: 200,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: const Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.broken_image,
+                                                size: 50,
+                                                color: Colors.grey,
+                                              ),
+                                              Text(
+                                                'No se pudo cargar la imagen',
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                              ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Estado
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _estadoColor(objeto['estadoId']).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _estadoColor(objeto['estadoId']),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _estadoIcon(objeto['estadoId']),
-                                size: 16,
-                                color: _estadoColor(objeto['estadoId']),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _estadoTexto(objeto['estadoId']).toUpperCase(),
-                                style: TextStyle(
-                                  color: _estadoColor(objeto['estadoId']),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Descripción
-                        _buildDetailSection(
-                          'Descripción',
-                          objeto['descripcion'] ?? 'Sin descripción',
-                          Icons.description,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Lugar
-                        _buildDetailSection(
-                          'Lugar',
-                          objeto['lugar'] ?? 'Sin ubicación',
-                          Icons.location_on,
-                        ),
-                        const SizedBox(height: 16),
-
-
-                        // Laboratorio
-                        
-                          _buildDetailSection(
-                            'Laboratorio',
-                            laboratorioNombre ?? 'Laboratorio desconocido',
-                            Icons.science,
-                          ),
-                          const SizedBox(height: 16),
-                   
-
-                        // Estado
-                        _buildDetailSection(
-                          'Estado',
-                          _estadoTexto(objeto['estadoId']),
-                          _estadoIcon(objeto['estadoId']),
-                        ),
-                        if (_estadoDescripcion(objeto['estadoId']).isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 16),
-                            child: Text(
-                              _estadoDescripcion(objeto['estadoId']),
-                              style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-                            ),
-                          ),
-
-                        // Fecha
-                        _buildDetailSection(
-                          'Fecha de pérdida',
-                          _formatearFecha(objeto['fecha_perdida']),
-                          Icons.calendar_today,
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Imagen (si existe)
-                        if (urlFoto != null && urlFoto.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Evidencia Fotográfica',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  urlFoto,
-                                  width: double.infinity,
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      height: 200,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                          Text('No se pudo cargar la imagen'),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
-                      ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
     );
   }
 
@@ -1009,7 +1046,7 @@ class ObjetoPerdidoCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _estadoIcon(estadoId), 
+                      _estadoIcon(estadoId),
                       color: _estadoColor(estadoId),
                       size: 20,
                     ),
@@ -1019,7 +1056,7 @@ class ObjetoPerdidoCard extends StatelessWidget {
                     child: Text(
                       objeto['nombre_objeto'] ?? 'Sin nombre',
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold, 
+                        fontWeight: FontWeight.bold,
                         fontSize: 18,
                         color: Color(0xFF1F2937),
                       ),
@@ -1028,7 +1065,10 @@ class ObjetoPerdidoCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _estadoColor(estadoId),
                       borderRadius: BorderRadius.circular(20),
@@ -1048,7 +1088,8 @@ class ObjetoPerdidoCard extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Descripción
-              if (objeto['descripcion'] != null && objeto['descripcion'].toString().isNotEmpty)
+              if (objeto['descripcion'] != null &&
+                  objeto['descripcion'].toString().isNotEmpty)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1070,22 +1111,36 @@ class ObjetoPerdidoCard extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Información adicional
-              _buildInfoRow(Icons.location_on, objeto['lugar'] ?? 'Sin ubicación', primaryColor),
+              _buildInfoRow(
+                Icons.location_on,
+                objeto['lugar'] ?? 'Sin ubicación',
+                primaryColor,
+              ),
               const SizedBox(height: 8),
-              _buildInfoRow(Icons.calendar_today, _formatearFecha(objeto['fecha_perdida']), const Color(0xFF6B7280)),
+              _buildInfoRow(
+                Icons.calendar_today,
+                _formatearFecha(objeto['fecha_perdida']),
+                const Color(0xFF6B7280),
+              ),
 
               if (objeto['laboratorio'] != null) ...[
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.science, 'Lab: ${objeto['laboratorio']}', infoColor),
+                _buildInfoRow(
+                  Icons.science,
+                  'Lab: ${objeto['laboratorio']}',
+                  infoColor,
+                ),
               ],
-              if (laboratorioNombre != null && laboratorioNombre!.isNotEmpty) ...[
+              if (laboratorioNombre != null &&
+                  laboratorioNombre!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _buildInfoRow(Icons.business, laboratorioNombre!, infoColor),
               ],
               const SizedBox(height: 20),
 
               // Botón de acción o estado
-              if (tipoCard == TipoCard.disponible && estadoId == 'EST_EN_CUSTODIA')
+              if (tipoCard == TipoCard.disponible &&
+                  estadoId == 'EST_EN_CUSTODIA')
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -1137,7 +1192,11 @@ class ObjetoPerdidoCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(_estadoIcon(estadoId), color: _estadoColor(estadoId), size: 20),
+                          Icon(
+                            _estadoIcon(estadoId),
+                            color: _estadoColor(estadoId),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _estadoTexto(estadoId),

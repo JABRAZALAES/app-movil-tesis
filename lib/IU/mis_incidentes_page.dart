@@ -20,7 +20,7 @@ List<Map<String, dynamic>> _laboratorios = [];
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
   static const String baseUrl =
-      'http://192.168.1.56:3000/'; // Cambia por tu IP si es necesario
+      'http://10.3.1.112:3000/'; // Cambia por tu IP si es necesario
 
   @override
   void initState() {
