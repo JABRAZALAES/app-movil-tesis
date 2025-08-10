@@ -9,6 +9,29 @@ class ObjetosPerdidosPage extends StatefulWidget {
   State<ObjetosPerdidosPage> createState() => _ObjetosPerdidosPageState();
 }
 
+String traducirError(dynamic error) {
+  final mensaje = error.toString();
+
+  if (mensaje.contains(
+    'No puedes reclamar un objeto que tú mismo reportaste',
+  )) {
+    return 'No puedes reclamar un objeto que tú mismo reportaste. Por favor, selecciona otro objeto.';
+  }
+  if (mensaje.contains('403')) {
+    return 'No tienes permiso para realizar esta acción.';
+  }
+  if (mensaje.contains('500')) {
+    return 'Error interno del servidor. Intenta nuevamente más tarde.';
+  }
+  if (mensaje.contains('SocketException')) {
+    return 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+  }
+  // Agrega aquí más casos según los mensajes de tu backend
+
+  // Si no coincide con ningún caso, muestra un mensaje genérico
+  return 'Ocurrió un error inesperado. Intenta nuevamente.';
+}
+
 class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
     with TickerProviderStateMixin {
   final ObjetosPerdidosService _service = ObjetosPerdidosService();
@@ -18,7 +41,7 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
   bool _isLoading = false;
   String _error = '';
   String? _userId;
-  final String _baseUrl = 'http://10.3.1.112:3000/';
+  final String _baseUrl = 'http://192.168.1.56:3000/';
   late TabController _tabController;
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
@@ -89,8 +112,8 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
                     obj['estadoId'] == 'EST_EN_CUSTODIA' &&
                     obj['periodo_academico_id']?.toString() ==
                         idPeriodoActual &&
-                    (obj['usuario_reclamante_id'] == null ||
-                        obj['usuario_reclamante_id'].toString().isEmpty),
+                    (obj['usuarioReclamanteId'] == null ||
+                        obj['usuarioReclamanteId'].toString().isEmpty),
               )
               .toList();
 
@@ -99,11 +122,11 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
           objetos
               .where(
                 (obj) =>
-                    obj['usuario_reclamante_id']?.toString() == _userId &&
+                    obj['usuarioReclamanteId']?.toString() == _userId &&
                     obj['periodo_academico_id']?.toString() ==
                         idPeriodoActual &&
-                    (obj['estadoId'] == 'EST_EN_CUSTODIA' ||
-                        obj['estadoId'] == 'EST_RECLAMADO'),
+                    (obj['estadoId'] == 'EST_RECLAMADO' ||
+                        obj['estadoId'] == 'EST_DEVUELTO'),
               )
               .toList();
 
@@ -121,80 +144,82 @@ class _ObjetosPerdidosPageState extends State<ObjetosPerdidosPage>
     print(_objetosDisponibles.map((o) => o['laboratorio_id']).toList());
     print(_laboratorios);
   }
-Future<void> _reclamarObjeto(dynamic objeto) async {
-  try {
-    setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-    final token = prefs.getString('token');
 
-    if (userId == null || token == null) {
-      // Solo aquí usa SnackBar
-      _showSnackBar('No se pudo identificar el usuario.', isError: true);
+  Future<void> _reclamarObjeto(dynamic objeto) async {
+    try {
+      setState(() => _isLoading = true);
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      final token = prefs.getString('token');
+
+      if (userId == null || token == null) {
+        // Solo aquí usa SnackBar
+        _showSnackBar('No se pudo identificar el usuario.', isError: true);
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final response = await _service.reclamarObjeto(
+        id: objeto['id'],
+        estadoId: 'EST_RECLAMADO',
+        usuarioReclamanteId: userId,
+        token: token,
+      );
+
+      final mensaje = response['message']?.toString().toLowerCase() ?? '';
+      final esExito = mensaje.contains('exitosamente');
+
+      // Solo muestra el AlertDialog, no el SnackBar
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text(esExito ? '¡Objeto reclamado!' : 'Error'),
+              content: Text(
+                esExito
+                    ? '${response['message'] ?? 'Objeto reclamado exitosamente.'}\n\n⏰ Importante: Tienes 1 hora para retirar el objeto de la Jefatura de Laboratorios.'
+                    : response['message'] ?? 'No se pudo reclamar el objeto.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            ),
+      );
+
+      if (esExito) {
+        await _cargarObjetos();
+      }
+    } catch (e) {
+      final mensajeError = traducirError(e);
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.error_outline, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Error!'),
+                ],
+              ),
+              content: Text(mensajeError, style: const TextStyle(fontSize: 15)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            ),
+      );
+    } finally {
       setState(() => _isLoading = false);
-      return;
     }
-
-    final response = await _service.reclamarObjeto(
-      id: objeto['id'],
-      estadoId: 'EST_RECLAMADO',
-      usuarioReclamanteId: userId,
-      token: token,
-    );
-
-    final mensaje = response['message']?.toString().toLowerCase() ?? '';
-    final esExito = mensaje.contains('exitosamente');
-
-    // Solo muestra el AlertDialog, no el SnackBar
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(esExito ? '¡Objeto reclamado!' : 'Error'),
-        content: Text(
-          esExito 
-            ? '${response['message'] ?? 'Objeto reclamado exitosamente.'}\n\n⏰ Importante: Tienes 1 hora para retirar el objeto de la Jefatura de Laboratorios.'
-            : response['message'] ?? 'No se pudo reclamar el objeto.'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-
-    if (esExito) {
-      await _cargarObjetos();
-    }
-  } catch (e) {
-    // Solo muestra el AlertDialog de error
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: const [
-            Icon(Icons.error_outline, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Error!'),
-          ],
-        ),
-        content: Text(
-          'Ocurrió un error al reclamar el objeto.\n${e.toString()}',
-          style: const TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  } finally {
-    setState(() => _isLoading = false);
   }
-}  void _showSnackBar(
+
+  void _showSnackBar(
     String message, {
     bool isError = false,
     bool isSuccess = false,
@@ -450,6 +475,9 @@ Future<void> _reclamarObjeto(dynamic objeto) async {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: ObjetoPerdidoCard(
                       objeto: _misObjetos[index],
+                      laboratorioNombre: _obtenerNombreLaboratorio(
+                        _misObjetos[index],
+                      ),
                       tipoCard: TipoCard.mio,
                       baseUrl: _baseUrl,
                     ),

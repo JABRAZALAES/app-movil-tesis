@@ -22,6 +22,26 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
   // Color principal más azul
   final Color _primaryColor = const Color.fromARGB(255, 0, 33, 182);
 
+  List<String> validarContrasena(String value) {
+    List<String> errores = [];
+    if (value.length < 8) {
+      errores.add('• Mínimo 8 caracteres');
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      errores.add('• Al menos una letra mayúscula');
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      errores.add('• Al menos una letra minúscula');
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      errores.add('• Al menos un número');
+    }
+    if (!RegExp(r'[!@#\$&*~_\-.,;:?¿¡%]').hasMatch(value)) {
+      errores.add('• Al menos un carácter especial');
+    }
+    return errores;
+  }
+
   Future<void> _cambiarContrasena() async {
     setState(() {
       _cargando = true;
@@ -32,20 +52,50 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
       final token = prefs.getString('token');
       if (token == null) throw Exception('No autenticado');
 
-    if (_nuevaController.text != _confirmarController.text) {
-    setState(() {
-      _mensaje = 'Error: Las contraseñas no coinciden';
-    });
-    return;
-  }
-  
-  if (_nuevaController.text.length < 6) {
-    setState(() {
-      _mensaje = 'Error: La contraseña debe tener al menos 6 caracteres';
-    });
-    return;
-  }
-  
+      final errores = validarContrasena(_nuevaController.text);
+      if (errores.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('La contraseña no cumple los requisitos'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: errores.map((e) => Text(e)).toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+        setState(() {
+          _cargando = false;
+        });
+        return;
+      }
+
+      if (_nuevaController.text != _confirmarController.text) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: const Text('Las contraseñas no coinciden'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+        setState(() {
+          _cargando = false;
+        });
+        return;
+      }
 
       final respuesta = await _authService.cambiarContrasena(
         token: token,
@@ -59,83 +109,95 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
       // Mostrar alerta de éxito
       showDialog(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      color: Color(0xFF4CAF50),
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '¡Listo!',
-                    style: TextStyle(
-                      color: Color(0xFF333333),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  _mensaje!,
-                  style: const TextStyle(
-                    color: Color(0xFF666666),
-                    fontSize: 16,
-                  ),
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 32,
                 ),
               ),
-              actions: [
-                Container(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const LoginPage(),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    child: const Text(
-                      'Aceptar',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+              const SizedBox(width: 12),
+              const Text(
+                '¡Listo!',
+                style: TextStyle(
+                  color: Color(0xFF333333),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
+            ],
+          ),
+          content: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              _mensaje!,
+              style: const TextStyle(
+                color: Color(0xFF666666),
+                fontSize: 16,
+              ),
             ),
+          ),
+          actions: [
+            Container(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const LoginPage(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  'Aceptar',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     } catch (e) {
       setState(() {
         _mensaje = 'Error: ${e.toString()}';
       });
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(_mensaje!),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
     } finally {
       setState(() {
         _cargando = false;
@@ -327,9 +389,13 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '• Mínimo 6 caracteres\n• Combina letras, números y símbolos\n• Evita información personal',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                    const Text(
+                      '• Mínimo 8 caracteres\n'
+                      '• Al menos una letra mayúscula\n'
+                      '• Al menos una letra minúscula\n'
+                      '• Al menos un número\n'
+                      '• Al menos un carácter especial (!@#\$&*~_-.,;:?¿¡%)',
+                      style: TextStyle(color: Color(0xFF333333), fontSize: 14),
                     ),
                   ],
                 ),
@@ -365,23 +431,22 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child:
-                      _cargando
-                          ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                          : const Text(
-                            'Cambiar contraseña',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                  child: _cargando
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
                           ),
+                        )
+                      : const Text(
+                          'Cambiar contraseña',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
 
@@ -391,16 +456,14 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color:
-                        _mensaje!.startsWith('Error')
-                            ? Colors.red.withOpacity(0.1)
-                            : Colors.green.withOpacity(0.1),
+                    color: _mensaje!.startsWith('Error')
+                        ? Colors.red.withOpacity(0.1)
+                        : Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color:
-                          _mensaje!.startsWith('Error')
-                              ? Colors.red.withOpacity(0.3)
-                              : Colors.green.withOpacity(0.3),
+                      color: _mensaje!.startsWith('Error')
+                          ? Colors.red.withOpacity(0.3)
+                          : Colors.green.withOpacity(0.3),
                     ),
                   ),
                   child: Row(
@@ -409,10 +472,9 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
                         _mensaje!.startsWith('Error')
                             ? Icons.error_outline
                             : Icons.check_circle_outline,
-                        color:
-                            _mensaje!.startsWith('Error')
-                                ? Colors.red[700]
-                                : Colors.green[700],
+                        color: _mensaje!.startsWith('Error')
+                            ? Colors.red[700]
+                            : Colors.green[700],
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -420,10 +482,9 @@ class _CambiarContrasenaPageState extends State<CambiarContrasenaPage> {
                         child: Text(
                           _mensaje!,
                           style: TextStyle(
-                            color:
-                                _mensaje!.startsWith('Error')
-                                    ? Colors.red[700]
-                                    : Colors.green[700],
+                            color: _mensaje!.startsWith('Error')
+                                ? Colors.red[700]
+                                : Colors.green[700],
                             fontWeight: FontWeight.w500,
                           ),
                         ),

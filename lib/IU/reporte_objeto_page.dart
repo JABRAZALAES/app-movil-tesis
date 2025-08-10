@@ -240,6 +240,10 @@ Future<void> _cargarLaboratorios() async {
       _mostrarError('Por favor, selecciona un laboratorio');
       return false;
     }
+     if (_imagen == null) {
+    _mostrarError('Por favor, agrega una foto del objeto encontrado');
+    return false;
+  }
     return true;
   }
 
@@ -440,7 +444,7 @@ void _limpiarFormulario() {
                 foregroundColor: Colors.white,
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
-                    'Reportar Objeto Perdido',
+                    'Reportar Objeto Encontrado',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -470,37 +474,45 @@ void _limpiarFormulario() {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        _buildSection(
-                          title: 'Nombre del Objeto',
-                          icon: Icons.label,
-                          child: TextFormField(
-                            controller: _nombreController,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: _inputDecoration('¿Qué objeto encontraste?'),
-                            enabled: !_isLoading,
-                          ),
-                        ),
-                        _buildSection(
-                          title: 'Descripción',
-                          icon: Icons.description,
-                          child: TextFormField(
-                            controller: _descripcionController,
-                            maxLines: 4,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: _inputDecoration('Describe el objeto que encontraste (color, tamaño, marca, etc.)'),
-                            enabled: !_isLoading,
-                          ),
-                        ),
-                        _buildSection(
-                          title: '¿Dónde lo encontraste?',
-                          icon: Icons.location_on,
-                          child: TextFormField(
-                            controller: _ubicacionController,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: _inputDecoration('Ubicación específica donde encontraste el objeto'),
-                            enabled: !_isLoading,
-                          ),
-                        ),
+                                        // Nombre del Objeto
+                    _buildSection(
+                      title: 'Nombre del Objeto',
+                      icon: Icons.label,
+                      child: TextFormField(
+                        controller: _nombreController,
+                        style: const TextStyle(color: Colors.black),
+                        maxLength: 150, // <-- Límite de 150 caracteres
+                        decoration: _inputDecoration('¿Qué objeto encontraste?'),
+                        enabled: !_isLoading,
+                      ),
+                    ),
+                    
+                    // Descripción
+                    _buildSection(
+                      title: 'Descripción',
+                      icon: Icons.description,
+                      child: TextFormField(
+                        controller: _descripcionController,
+                        maxLines: 4,
+                        maxLength: 150, // <-- Límite de 150 caracteres
+                        style: const TextStyle(color: Colors.black),
+                        decoration: _inputDecoration('Describe el objeto que encontraste (color, tamaño, marca, etc.)'),
+                        enabled: !_isLoading,
+                      ),
+                    ),
+                    
+                    // ¿Dónde lo encontraste?
+                    _buildSection(
+                      title: '¿Dónde lo encontraste?',
+                      icon: Icons.location_on,
+                      child: TextFormField(
+                        controller: _ubicacionController,
+                        style: const TextStyle(color: Colors.black),
+                        maxLength: 150, // <-- Límite de 150 caracteres
+                        decoration: _inputDecoration('Ubicación específica donde encontraste el objeto'),
+                        enabled: !_isLoading,
+                      ),
+                    ),
                         _buildSection(
                           title: 'Laboratorio',
                           icon: Icons.science,

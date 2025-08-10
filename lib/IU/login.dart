@@ -4,10 +4,6 @@ import 'package:recuperacion/IU/recuperacionContrase%C3%B1a.dart';
 import '../Services/auth_service.dart';
 import 'menu.dart';
 import 'package:flutter/services.dart';
-
-
-
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -24,8 +20,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _correoController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
-  final TextEditingController _confirmarContrasenaController = TextEditingController();
-
+  final TextEditingController _confirmarContrasenaController =
+      TextEditingController();
+  final List<String> _tiposUsuario = [
+    'Docente DCCO',
+    'Docente DCVA',
+    'Docente DCEX',
+    'EST. ITIN',
+    'EST. AGROPECUARIA',
+    'EST. BIOTECNOLOGIA',
+    'PER. ADMINISTRATIVO',
+    'PER. FINANCIERO',
+    'VARIOS SERVICIOS',
+  ];
+  String? _tipoUsuarioSeleccionado;
   bool _esLogin = true;
   bool _cargando = false;
   String _mensajeError = '';
@@ -93,8 +101,68 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _slideController.forward();
   }
 
+  List<String> validarContrasena(String value) {
+    List<String> errores = [];
+    if (value.length < 8) {
+      errores.add('• Mínimo 8 caracteres');
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      errores.add('• Al menos una letra mayúscula');
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      errores.add('• Al menos una letra minúscula');
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      errores.add('• Al menos un número');
+    }
+    if (!RegExp(r'[!@#\$&*~_\-.,;:?¿¡%]').hasMatch(value)) {
+      errores.add('• Al menos un carácter especial');
+    }
+    return errores;
+  }
+
+  String capitalizarNombre(String nombre) {
+    return nombre
+        .trim()
+        .split(' ')
+        .map((palabra) {
+          if (palabra.isEmpty) return '';
+          return palabra[0].toUpperCase() + palabra.substring(1).toLowerCase();
+        })
+        .join(' ');
+  }
+
   Future<void> _manejarEnvio() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _cargando = true;
+      _mensajeError = '';
+    });
+    if (!_esLogin) {
+      final errores = validarContrasena(_contrasenaController.text);
+      if (errores.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('La contraseña no cumple los requisitos'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: errores.map((e) => Text(e)).toList(),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              ),
+        );
+        setState(() => _cargando = false);
+        return;
+      }
+    }
 
     setState(() {
       _cargando = true;
@@ -110,24 +178,45 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           contrasena: _contrasenaController.text,
         );
 
-        // ignore: unnecessary_null_comparison
-        if (datosLogin == null || datosLogin['usuario'] == null || datosLogin['token'] == null) {
-          _mostrarError('Credenciales incorrectas. Verifica tu correo y contraseña.');
+        if (datosLogin == null ||
+            datosLogin['usuario'] == null ||
+            datosLogin['token'] == null) {
+          _mostrarError(
+            'Credenciales incorrectas. Verifica tu correo y contraseña.',
+          );
           return;
         }
 
         final usuario = datosLogin['usuario'];
-        if (usuario['nombre'] == null || usuario['correo'] == null || usuario['id'] == null) {
-          _mostrarError('Error en los datos del usuario. Contacta al administrador.');
+        if (usuario['nombre'] == null ||
+            usuario['correo'] == null ||
+            usuario['id'] == null) {
+          _mostrarError(
+            'Error en los datos del usuario. Contacta al administrador.',
+          );
           return;
         }
 
+        // Limpia el token anterior antes de guardar el nuevo
+
+        await prefs.remove('token');
         await prefs.setString('nombre', usuario['nombre']);
-        await prefs.setString('token', datosLogin['token']);
+        await prefs.setString('tipo_usuario', usuario['tipo_usuario'] ?? ''); // <-- AGREGA ESTO
+        await prefs.setString(
+          'token',
+          datosLogin['token'],
+        ); // Guarda el nuevo token
         await prefs.setString('correo', usuario['correo']);
         await prefs.setString('rol', usuario['rol'] ?? 'normal');
         await prefs.setString('user_id', usuario['id'].toString());
-
+        await prefs.setString('tipo_usuario', usuario['tipo_usuario'] ?? '');
+        await prefs.setString(
+          'token',
+          datosLogin['token'],
+        ); // Guarda el nuevo token
+        print(
+          'Token guardado tras login: ${datosLogin['token']}',
+        ); // <-- Agrega este print aquí
         // Verifica si requiere cambio de contraseña
         if (datosLogin['requiereCambioContrasena'] == true) {
           Navigator.pushReplacement(
@@ -142,37 +231,51 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         _mostrarExitoYRedirigir('¡Bienvenido!');
       } else {
         final datosRegistro = await _authService.register(
-          nombre: _nombreController.text.trim(),
+          nombre: capitalizarNombre(_nombreController.text),
           correo: _correoController.text.trim(),
           contrasena: _contrasenaController.text,
+          tipoUsuario: _tipoUsuarioSeleccionado!, // <-- Aquí
         );
+        final tokenRegistro =
+            datosRegistro['token'] ?? datosRegistro['usuario']?['token'];
 
-        final tokenRegistro = datosRegistro['token'] ?? datosRegistro['usuario']?['token'];
-
-        // ignore: unnecessary_null_comparison
-        if (datosRegistro == null || datosRegistro['usuario'] == null || 
-            datosRegistro['usuario']['id'] == null || tokenRegistro == null) {
-          _mostrarError('Error al crear la cuenta. Verifica los datos e intenta nuevamente.');
-          return;
-        }
+        // Validaciones...
 
         final usuario = datosRegistro['usuario'];
         if (usuario['nombre'] == null || usuario['correo'] == null) {
-          _mostrarError('Error en los datos del registro. Contacta al administrador.');
+          _mostrarError(
+            'Error en los datos del registro. Contacta al administrador.',
+          );
           return;
         }
 
+        // Aquí se guarda el token NUEVO después del registro
+        await prefs.remove(
+          'token',
+        ); // <-- Agrega esto para limpiar el token anterior
         await prefs.setString('nombre', usuario['nombre']);
         await prefs.setString('correo', usuario['correo']);
         await prefs.setString('rol', usuario['rol'] ?? 'normal');
         await prefs.setString('user_id', usuario['id'].toString());
-        await prefs.setString('token', tokenRegistro);
-
+        await prefs.setString('tipo_usuario', usuario['tipo_usuario'] ?? ''); // <-- AGREGA ESTA LÍNEA
+        
+        await prefs.setString(
+          'token',
+          tokenRegistro,
+        ); // <-- Aquí se guarda el nuevo token
+        await prefs.setString('token', tokenRegistro); // Guarda el nuevo token
+        print(
+          'Token guardado tras registro: $tokenRegistro',
+        ); // <-- Agrega este print aquí
         _mostrarExitoYRedirigir('¡Cuenta creada exitosamente!');
       }
     } catch (e) {
-      String mensajeError = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-      
+      String mensajeError =
+          'Error de conexión. Verifica tu internet e intenta nuevamente.';
+      if (e.toString().contains('Sesión iniciada en otro dispositivo')) {
+        _mostrarPantallaSesionBloqueada();
+        return;
+      }
       if (e.toString().contains('Exception:')) {
         mensajeError = e.toString().replaceFirst('Exception: ', '');
       } else if (e.toString().contains('timeout')) {
@@ -180,8 +283,89 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       } else if (e.toString().contains('network')) {
         mensajeError = 'Error de red. Verifica tu conexión.';
       }
-      
+
       _mostrarError(mensajeError);
+    }
+  }
+
+  void _mostrarPantallaSesionBloqueada() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => WillPopScope(
+            onWillPop: () async => false,
+            child: Scaffold(
+              backgroundColor: Colors.black.withOpacity(0.8),
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock, color: Colors.white, size: 60),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Sesión bloqueada',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Tu sesión ha sido iniciada en otro dispositivo.\nDebes volver a iniciar sesión.',
+                        style: TextStyle(color: Colors.white70, fontSize: 18),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Cerrar sesión'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                        ),
+                        onPressed: () async {
+                          await _cerrarSesion();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Future<void> _cerrarSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    try {
+      if (token != null) {
+        await _authService.logout(
+          token,
+        ); // Asegúrate de tener este método en tu AuthService
+      }
+    } catch (_) {}
+    await prefs.clear();
+    if (mounted) {
+      // Cierra todos los modales antes de navegar
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
     }
   }
 
@@ -198,7 +382,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     setState(() {
       _cargando = false;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -207,7 +391,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                mensaje, 
+                mensaje,
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -226,8 +410,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const MenuPage(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            pageBuilder:
+                (context, animation, secondaryAnimation) => const MenuPage(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
               return SlideTransition(
                 position: Tween<Offset>(
                   begin: const Offset(1.0, 0.0),
@@ -318,15 +508,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             fit: BoxFit.contain,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Gestión de Novedades',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.0,
-            ),
-          ),
+  Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+  child: Text(
+    'Gestión de Novedades Jefatura de Laboratorios',
+    style: const TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+      color: Colors.white,
+      letterSpacing: 1.0,
+    ),
+    textAlign: TextAlign.center,
+    maxLines: 3, // Permite hasta 3 líneas
+    overflow: TextOverflow.visible, // No corta el texto con puntos
+  ),
+),
           const SizedBox(height: 8),
           const Text(
             'ESPE - Santo Domingo',
@@ -377,9 +573,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  _esLogin 
-                    ? 'Ingresa tus credenciales para continuar'
-                    : 'Completa los datos para registrarte',
+                  _esLogin
+                      ? 'Ingresa tus credenciales para continuar'
+                      : 'Completa los datos para registrarte',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF666666),
@@ -389,16 +585,45 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Mensaje de error
               if (_mensajeError.isNotEmpty) _construirMensajeError(),
-              
+
               // Campos del formulario
               if (!_esLogin) _construirCampoNombre(),
               _construirCampoCorreo(),
               const SizedBox(height: 16),
               _construirCampoContrasena(),
               if (!_esLogin) _construirCampoConfirmarContrasena(),
+              if (!_esLogin)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo de usuario',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _tipoUsuarioSeleccionado,
+                    items:
+                        _tiposUsuario.map((tipo) {
+                          return DropdownMenuItem(
+                            value: tipo,
+                            child: Text(tipo),
+                          );
+                        }).toList(),
+                    onChanged: (valor) {
+                      setState(() {
+                        _tipoUsuarioSeleccionado = valor;
+                      });
+                    },
+                    validator: (valor) {
+                      if (!_esLogin && (valor == null || valor.isEmpty)) {
+                        return 'Debes seleccionar un tipo de usuario';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
               if (_esLogin) _construirOlvidasteContrasena(),
               const SizedBox(height: 24),
               _construirBotonPrincipal(),
@@ -437,85 +662,80 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
- Widget _construirCampoNombre() {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: TextFormField(
-      controller: _nombreController,
-      style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]")
+  Widget _construirCampoNombre() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: _nombreController,
+        style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
+        maxLength: 50, // <-- Limita la entrada a 50 caracteres
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(
+            RegExp(r"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]"),
+          ),
+        ],
+        decoration: InputDecoration(
+          labelText: 'Nombre completo',
+          labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
+          prefixIcon: const Icon(
+            Icons.person_outline,
+            color: Color(0xFF667eea),
+            size: 24,
+          ),
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
+          ),
+          counterText: '', // Opcional: oculta el contador de caracteres
         ),
-      ],
-      decoration: InputDecoration(
-        labelText: 'Nombre completo',
-        labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
-        prefixIcon: const Icon(
-          Icons.person_outline,
-          color: Color(0xFF667eea),
-          size: 24,
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF8F9FA),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
-        ),
+validator: (value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Ingresa tu nombre completo';
+  }
+  String nombreLimpio = value.trim();
+  if (nombreLimpio.length < 2) {
+    return 'El nombre debe tener al menos 2 caracteres';
+  }
+  RegExp nombreValido = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$");
+  if (!nombreValido.hasMatch(nombreLimpio)) {
+    return 'El nombre solo puede contener letras y espacios';
+  }
+  if (nombreLimpio.contains(RegExp(r'\s{2,}'))) {
+    return 'No se permiten espacios múltiples consecutivos';
+  }
+  if (nombreLimpio.startsWith(' ') || nombreLimpio.endsWith(' ')) {
+    return 'El nombre no puede empezar o terminar con espacio';
+  }
+  if (nombreLimpio.length > 50) {
+    return 'El nombre no puede exceder 50 caracteres';
+  }
+  if (nombreLimpio.split(' ').length < 2) {
+    return 'Debes ingresar al menos un apellido o segundo nombre';
+  }
+  return null;
+},
       ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ingresa tu nombre completo';
-        }
-        
-        String nombreLimpio = value.trim();
-        
-        if (nombreLimpio.length < 2) {
-          return 'El nombre debe tener al menos 2 caracteres';
-        }
-        
-        // Validar que solo contenga letras válidas para nombres en español
-        RegExp nombreValido = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$");
-        if (!nombreValido.hasMatch(nombreLimpio)) {
-          return 'El nombre solo puede contener letras y espacios';
-        }
-        
-        // Validar que no tenga espacios múltiples consecutivos
-        if (nombreLimpio.contains(RegExp(r'\s{2,}'))) {
-          return 'No se permiten espacios múltiples consecutivos';
-        }
-        
-        // Validar que no empiece o termine con espacio
-        if (nombreLimpio.startsWith(' ') || nombreLimpio.endsWith(' ')) {
-          return 'El nombre no puede empezar o terminar con espacio';
-        }
-        
-        // Validar longitud máxima
-        if (nombreLimpio.length > 50) {
-          return 'El nombre no puede exceder 50 caracteres';
-        }
-        
-        return null;
-      },
-    ),
-  );
-}
+    );
+  }
+
   Widget _construirCampoCorreo() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -523,6 +743,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         controller: _correoController,
         style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
         keyboardType: TextInputType.emailAddress,
+        maxLength: 70,
         decoration: InputDecoration(
           labelText: 'Correo electrónico',
           labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
@@ -553,19 +774,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
           ),
+          counterText: '', // Opcional: oculta el contador de caracteres
         ),
-         validator: (value) {
-      if (value == null || value.trim().isEmpty) {
-        return 'Ingresa tu correo electrónico';
-      }
-      if (value.trim() != value) {
-        return 'No debe tener espacios al inicio o final';
-      }
-      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-        return 'Ingresa un correo válido';
-      }
-      return null;
-    },
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Ingresa tu correo electrónico';
+          }
+          if (value.trim() != value) {
+            return 'No debe tener espacios al inicio o final';
+          }
+          if (value.contains(RegExp(r'[A-Z]'))) {
+            return 'El correo no debe tener mayúsculas';
+          }
+          if (!RegExp(
+            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+          ).hasMatch(value.trim())) {
+            return 'Ingresa un correo válido';
+          }
+          return null;
+        },
       ),
     );
   }
@@ -577,6 +804,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         controller: _contrasenaController,
         obscureText: !_mostrarContrasena,
         style: const TextStyle(color: Color(0xFF333333), fontSize: 16),
+        maxLength: 20, // <-- Limita la entrada a 20 caracteres
         decoration: InputDecoration(
           labelText: 'Contraseña',
           labelStyle: const TextStyle(color: Color(0xFF666666), fontSize: 16),
@@ -590,7 +818,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               _mostrarContrasena ? Icons.visibility_off : Icons.visibility,
               color: const Color(0xFF667eea),
             ),
-            onPressed: () => setState(() => _mostrarContrasena = !_mostrarContrasena),
+            onPressed:
+                () => setState(() => _mostrarContrasena = !_mostrarContrasena),
           ),
           filled: true,
           fillColor: const Color(0xFFF8F9FA),
@@ -614,13 +843,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE57373), width: 1),
           ),
+          counterText: '', // Opcional: oculta el contador de caracteres
         ),
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Ingresa tu contraseña';
           }
-          if (value.length < 6) {
-            return 'La contraseña debe tener al menos 6 caracteres';
+          if (value.length > 20) {
+            return 'La contraseña no puede exceder 20 caracteres';
           }
           return null;
         },
@@ -645,10 +875,17 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ),
           suffixIcon: IconButton(
             icon: Icon(
-              _mostrarConfirmarContrasena ? Icons.visibility_off : Icons.visibility,
+              _mostrarConfirmarContrasena
+                  ? Icons.visibility_off
+                  : Icons.visibility,
               color: const Color(0xFF667eea),
             ),
-            onPressed: () => setState(() => _mostrarConfirmarContrasena = !_mostrarConfirmarContrasena),
+            onPressed:
+                () => setState(
+                  () =>
+                      _mostrarConfirmarContrasena =
+                          !_mostrarConfirmarContrasena,
+                ),
           ),
           filled: true,
           fillColor: const Color(0xFFF8F9FA),
@@ -679,6 +916,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           }
           if (value != _contrasenaController.text) {
             return 'Las contraseñas no coinciden';
+          }
+          if (value.length > 20) {
+            return 'La contraseña no puede exceder 20 caracteres';
           }
           return null;
         },
@@ -741,24 +981,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: _cargando
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
+        child:
+            _cargando
+                ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+                : Text(
+                  _esLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              )
-            : Text(
-                _esLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
-              ),
       ),
     );
   }

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // <-- Agrega esto junto a tus otros imports
 import 'apiclient.dart';
-
+import 'package:path_provider/path_provider.dart';
 class IncidentesService {
   final ApiClient _apiClient = ApiClient();
   String get baseUrl => _apiClient.baseUrl;
@@ -185,7 +185,19 @@ Future<List<Map<String, dynamic>>> obtenerComputadorasPorLaboratorio(String labo
     }
     return null;
   }
-
+  
+Future<String> descargarTrazabilidadPdfPorUsuario({required String nombreUsuario}) async {
+  final url = 'http://192.168.1.56:3000/api/reportes/trazabilidad-por-usuario?nombre=${Uri.encodeComponent(nombreUsuario)}&formato=pdf';
+  final response = await http.get(Uri.parse(url));
+  if (response.statusCode == 200) {
+    final dir = await getExternalStorageDirectory();
+    final file = File('${dir!.path}/trazabilidad-$nombreUsuario.pdf');
+    await file.writeAsBytes(response.bodyBytes);
+    return file.path;
+  } else {
+    throw Exception('No se pudo descargar el PDF');
+  }
+}
 }
 
 

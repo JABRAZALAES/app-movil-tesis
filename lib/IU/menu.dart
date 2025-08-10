@@ -1,3 +1,5 @@
+
+            import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
@@ -8,6 +10,8 @@ import 'reporte_objeto_page.dart';
 import 'mis_incidentes_page.dart';
 import 'objetos_perdidos_page.dart';
 import 'perfil.dart';
+import '../Services/auth_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
@@ -17,17 +21,26 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _animationController;
   late List<Animation<double>> _buttonAnimations;
-
+  final AuthService _authService = AuthService();
   String _nombreUsuario = 'Usuario';
+  bool _modalSesionBloqueadaMostrado = false;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _cargarNombreUsuario();
+    _validarSesion();
+
+    // Validar sesión cada 10 segundos (opción 1)
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _validarSesion();
+    });
 
     _animationController = AnimationController(
       vsync: this,
@@ -52,6 +65,153 @@ class _MenuPageState extends State<MenuPage>
       _animationController.forward();
     });
   }
+    void _mostrarAdvertenciaExpiracion(int minutosRestantes) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¡Atención!'),
+        content: Text(
+          'Tu sesión expirará en $minutosRestantes minutos. '
+          'Por favor, vuelve a iniciar sesión para evitar perder tu trabajo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+int _minutosRestantesToken(String token) {
+  try {
+    final expirationDate = JwtDecoder.getExpirationDate(token);
+    final now = DateTime.now();
+    final difference = expirationDate.difference(now);
+    return difference.inMinutes;
+  } catch (_) {
+    return 0;
+  }
+}
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _validarSesion();
+    }
+  }
+
+  // Puedes reutilizar este método en otras pantallas protegidas
+Future<void> _validarSesion() async {
+  print('Validando sesión...');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  print('Token actual en la app: $token');
+  if (token == null) return;
+  try {
+    // ADVERTENCIA SI QUEDAN 5 MINUTOS O MENOS
+    final minutosRestantes = _minutosRestantesToken(token);
+    if (minutosRestantes > 0 && minutosRestantes <= 5) {
+      _mostrarAdvertenciaExpiracion(minutosRestantes);
+    }
+
+    await _authService.getUsuarioActual(token);
+    print('Sesión válida');
+  } on SesionBloqueadaException {
+    print('¡Sesión bloqueada detectada!');
+    _mostrarPantallaSesionBloqueada();
+  } catch (e) {
+    print('Otro error: $e');
+  }
+}
+  void _mostrarPantallaSesionBloqueada() {
+    if (_modalSesionBloqueadaMostrado) return;
+    _modalSesionBloqueadaMostrado = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: Scaffold(
+          backgroundColor: Colors.black.withOpacity(0.8),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock, color: Colors.white, size: 60),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Sesión bloqueada',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Tu sesión ha sido iniciada en otro dispositivo.\nDebes volver a iniciar sesión.',
+                    style: TextStyle(color: Colors.white70, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cerrar sesión'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                    onPressed: () async {
+                      await _cerrarSesion();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ).then((_) {
+      _modalSesionBloqueadaMostrado = false;
+    });
+  }
+
+Future<void> _cerrarSesion() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  try {
+    if (token != null) {
+      await _authService.logout(token);
+    }
+  } catch (_) {}
+  await prefs.clear();
+  if (mounted) {
+    // Cierra todos los modales antes de navegar
+    Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const PerfilPage(), // O LoginPage si tienes una
+      ),
+      (route) => false,
+    );
+  }
+  _modalSesionBloqueadaMostrado = false;
+}
 
   Future<void> _cargarNombreUsuario() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,15 +221,12 @@ class _MenuPageState extends State<MenuPage>
     });
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void _playHapticFeedback() {
+    HapticFeedback.lightImpact();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -123,7 +280,10 @@ class _MenuPageState extends State<MenuPage>
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 47, 255)],
+                          colors: [
+                            Color.fromARGB(255, 0, 33, 182),
+                            Color.fromARGB(255, 0, 47, 255),
+                          ],
                         ),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(32),
@@ -305,7 +465,7 @@ class _MenuPageState extends State<MenuPage>
                     const SizedBox(height: 12),
                     _buildAnimatedButton(
                       context,
-                      'Reportar Objeto Perdido',
+                      'Reportar Objeto Encontrado',
                       Icons.search_outlined,
                       () {
                         _playHapticFeedback();
@@ -372,9 +532,13 @@ class _MenuPageState extends State<MenuPage>
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(fontSize: 14),
                                     ),
-
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color.fromARGB(255, 0, 33, 182),
+                                      backgroundColor: Color.fromARGB(
+                                        255,
+                                        0,
+                                        33,
+                                        182,
+                                      ),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -397,12 +561,12 @@ class _MenuPageState extends State<MenuPage>
                                   child: ElevatedButton.icon(
                                     icon: const Icon(Icons.search, size: 20),
                                     label: const Text(
-                                      'Administrar Objetos Encontrados',
+                                      'Adm. Objetos Perdidos',
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(fontSize: 14),
                                     ),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color.fromARGB(255, 0, 33, 182),
+                                      backgroundColor: Color(0xFF0021B6),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -493,7 +657,10 @@ class _MenuPageState extends State<MenuPage>
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 33, 182)],
+                                colors: [
+                                  Color.fromARGB(255, 0, 33, 182),
+                                  Color.fromARGB(255, 0, 33, 182),
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -533,7 +700,6 @@ class _MenuPageState extends State<MenuPage>
                               ],
                             ),
                           ),
-                         
                         ],
                       ),
                     ),
@@ -571,10 +737,6 @@ class _MenuPageState extends State<MenuPage>
         ),
       ),
     );
-  }
-
-  void _playHapticFeedback() {
-    HapticFeedback.lightImpact();
   }
 
   Widget _buildAnimatedButton(
@@ -621,7 +783,10 @@ class _MenuPageState extends State<MenuPage>
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color.fromARGB(255, 0, 33, 182), Color.fromARGB(255, 0, 33, 182)],
+                              colors: [
+                                Color.fromARGB(255, 0, 33, 182),
+                                Color.fromARGB(255, 0, 33, 182),
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -682,7 +847,7 @@ class _MenuPageState extends State<MenuPage>
     switch (buttonText) {
       case 'Reportar Incidente':
         return 'Notifica un problema o incidente';
-      case 'Reportar Objeto Perdido':
+      case 'Reportar Objeto Encontrado':
         return 'Notifica un objeto perdido';
       case 'Mis Incidentes':
         return 'Revisa tus reportes anteriores';

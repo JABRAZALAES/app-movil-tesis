@@ -76,16 +76,14 @@ Future<void> _cargarObjetos() async {
 
     // 3. Filtrar: solo en custodia o pendientes del periodo actual
     final objetosFiltrados = objetos.where((obj) {
-      final estado = obj['estadoId']?.toString();
-      final periodoId = obj['periodo_academico_id']?.toString();
-      return (estado == 'EST_EN_CUSTODIA' || estado == 'EST_PENDIENTE')
-          && periodoId == idPeriodoActual;
-    }).toList();
-
-    setState(() {
-      _objetos = objetosFiltrados;
-      _cargando = false;
-    });
+    final periodoId = obj['periodo_academico_id']?.toString();
+    return periodoId == idPeriodoActual;
+  }).toList();
+  
+  setState(() {
+    _objetos = objetosFiltrados;
+    _cargando = false;
+  });
   } catch (e) {
     setState(() => _cargando = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -321,6 +319,7 @@ Future<String?> _mostrarDialogoEvidenciaEntrega(
                       ),
                       minLines: 3,
                       maxLines: 5,
+                       maxLength: 150, 
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),
@@ -787,7 +786,7 @@ Future<String?> _mostrarDialogoEvidenciaEntrega(
                                         const Color(0xFF636E72),
                                       ),
                                     ],
-                                    if (objeto['usuario_reclamante_id'] !=
+                                    if (objeto['usuarioReclamanteId'] !=
                                             null ||
                                         objeto['usuarioReclamanteId'] != null ||
                                         objeto['usuario_reclamante_nombre'] !=
@@ -798,7 +797,7 @@ Future<String?> _mostrarDialogoEvidenciaEntrega(
                                         'Usuario reclamante',
                                         objeto['usuario_reclamante_nombre'] ??
                                             objeto['usuario_reclamante_nombre'] ??
-                                            'ID: ${objeto['usuario_reclamante_id'] ?? objeto['usuarioReclamanteId']}',
+                                            'ID: ${objeto['usuarioReclamanteId'] ?? objeto['usuarioReclamanteId']}',
                                         const Color(0xFFE84393),
                                       ),
                                     ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/incidentes_service.dart';
+import 'package:open_file/open_file.dart';
 
 class MisIncidentesPage extends StatefulWidget {
   const MisIncidentesPage({super.key});
@@ -13,14 +14,14 @@ class _MisIncidentesPageState extends State<MisIncidentesPage> {
   final IncidentesService _service = IncidentesService();
   List<dynamic> _incidentes = [];
   List<Map<String, dynamic>> _inconvenientes = [];
-List<Map<String, dynamic>> _laboratorios = [];
+  List<Map<String, dynamic>> _laboratorios = [];
   bool _isLoading = true;
   String? _error;
   String? _token;
 
   static const Color primaryColor = Color.fromARGB(255, 0, 33, 182);
   static const String baseUrl =
-      'http://10.3.1.112:3000/'; // Cambia por tu IP si es necesario
+      'http://192.168.1.56:3000/'; // Cambia por tu IP si es necesario
 
   @override
   void initState() {
@@ -28,89 +29,121 @@ List<Map<String, dynamic>> _laboratorios = [];
     _cargarTokenYIncidentes();
   }
 
-// Función para obtener el nombre del laboratorio por id
-String _obtenerNombreLaboratorio(dynamic incidente) {
-final labId = incidente['laboratorio_id']?.toString();
-final lab = _laboratorios.firstWhere(
-  (l) => l['id'].toString() == labId,
-  orElse: () => {},
-);
-  return lab.isNotEmpty ? (lab['nombre'] ?? 'Laboratorio desconocido') : 'Laboratorio desconocido';
-}
-Future<void> _cargarTokenYIncidentes() async {
-  setState(() {
-    _isLoading = true;
-    _error = null;
-  });
-
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
-    if (_token == null) {
-      setState(() {
-        _error = 'Token no encontrado';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // 1. Obtener periodo académico activo
-    final periodo = await _service.obtenerPeriodoActivo(_token!);
-    if (periodo == null) {
-      setState(() {
-        _error = 'No hay periodo académico activo';
-        _isLoading = false;
-      });
-      return;
-    }
-    final idPeriodoActual = periodo['id'].toString();
-
-// 2. Cargar laboratorios
-_laboratorios = await _service.obtenerLaboratorios(_token!);
-
-// 3. Cargar inconvenientes
-_inconvenientes = await _service.obtenerInconvenientes(_token!);
-
-// 4. Cargar incidentes
-final incidentes = await _service.obtenerMisIncidentes(_token!);
-    // 5. Filtrar solo los del periodo actual y estado pendiente
-    final incidentesFiltrados = incidentes.where((inc) {
-      final estado = (inc['estadoId'] ?? '').toString().toUpperCase();
-      final periodoId = inc['periodo_academico_id']?.toString();
-      return estado == 'EST_PENDIENTE' && periodoId == idPeriodoActual;
-    }).toList();
-
-    // 5. Ordenar los incidentes filtrados
-    final incidentesOrdenados = List.from(incidentesFiltrados);
-    incidentesOrdenados.sort((a, b) {
-      final fechaA = a['fechaReporte'] ?? a['fecha_reporte'] ?? '';
-      final fechaB = b['fechaReporte'] ?? b['fecha_reporte'] ?? '';
-      if (fechaA.isEmpty && fechaB.isEmpty) return 0;
-      if (fechaA.isEmpty) return 1;
-      if (fechaB.isEmpty) return -1;
-      try {
-        final dateA = DateTime.parse(fechaA);
-        final dateB = DateTime.parse(fechaB);
-        return dateB.compareTo(dateA);
-      } catch (e) {
-        return 0;
+  Future<void> _descargarTrazabilidadPdf() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final nombre = prefs.getString('nombre');
+      if (nombre == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontró el nombre de usuario')),
+        );
+        return;
       }
-    });
+      final rutaPdf = await _service.descargarTrazabilidadPdfPorUsuario(
+        nombreUsuario: nombre,
+      );
 
-    setState(() {
-      _incidentes = incidentesOrdenados;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _error = 'Error al cargar incidentes: $e';
-      _isLoading = false;
-    });
+      // Abre el PDF directamente
+      final result = await OpenFile.open(rutaPdf);
+      if (result.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo abrir el PDF: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al descargar o abrir PDF: $e')),
+      );
+    }
   }
-    print('Laboratorios: $_laboratorios');
-  print('Incidentes laboratorio_id: ${_incidentes.map((i) => i['laboratorio_id']).toList()}');
-}
 
+  // Función para obtener el nombre del laboratorio por id
+  String _obtenerNombreLaboratorio(dynamic incidente) {
+    final labId = incidente['laboratorio_id']?.toString();
+    final lab = _laboratorios.firstWhere(
+      (l) => l['id'].toString() == labId,
+      orElse: () => {},
+    );
+    return lab.isNotEmpty
+        ? (lab['nombre'] ?? 'Laboratorio desconocido')
+        : 'Laboratorio desconocido';
+  }
+
+  Future<void> _cargarTokenYIncidentes() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _token = prefs.getString('token');
+      if (_token == null) {
+        setState(() {
+          _error = 'Token no encontrado';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 1. Obtener periodo académico activo
+      final periodo = await _service.obtenerPeriodoActivo(_token!);
+      if (periodo == null) {
+        setState(() {
+          _error = 'No hay periodo académico activo';
+          _isLoading = false;
+        });
+        return;
+      }
+      final idPeriodoActual = periodo['id'].toString();
+
+      // 2. Cargar laboratorios
+      _laboratorios = await _service.obtenerLaboratorios(_token!);
+
+      // 3. Cargar inconvenientes
+      _inconvenientes = await _service.obtenerInconvenientes(_token!);
+
+      // 4. Cargar incidentes
+      final incidentes = await _service.obtenerMisIncidentes(_token!);
+      // 5. Filtrar solo los del periodo actual y estado pendiente
+      final incidentesFiltrados =
+          incidentes.where((inc) {
+            final periodoId = inc['periodo_academico_id']?.toString();
+            return periodoId == idPeriodoActual;
+          }).toList();
+
+      // 5. Ordenar los incidentes filtrados
+      final incidentesOrdenados = List.from(incidentesFiltrados);
+      incidentesOrdenados.sort((a, b) {
+        final fechaA = a['fechaReporte'] ?? a['fecha_reporte'] ?? '';
+        final fechaB = b['fechaReporte'] ?? b['fecha_reporte'] ?? '';
+        if (fechaA.isEmpty && fechaB.isEmpty) return 0;
+        if (fechaA.isEmpty) return 1;
+        if (fechaB.isEmpty) return -1;
+        try {
+          final dateA = DateTime.parse(fechaA);
+          final dateB = DateTime.parse(fechaB);
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      setState(() {
+        _incidentes = incidentesOrdenados;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar incidentes: $e';
+        _isLoading = false;
+      });
+    }
+    print('Laboratorios: $_laboratorios');
+    print(
+      'Incidentes laboratorio_id: ${_incidentes.map((i) => i['laboratorio_id']).toList()}',
+    );
+  }
 
   Color _getEstadoColor(String estadoId) {
     switch (estadoId) {
@@ -400,11 +433,11 @@ final incidentes = await _service.obtenerMisIncidentes(_token!);
                             const SizedBox(height: 16),
 
                             // Laboratorio
-                          _buildDetailSection(
-  'Laboratorio',
-  _obtenerNombreLaboratorio(incidente),
-  Icons.science,
-),
+                            _buildDetailSection(
+                              'Laboratorio',
+                              _obtenerNombreLaboratorio(incidente),
+                              Icons.science,
+                            ),
                             const SizedBox(height: 16),
 
                             // USUARIO QUE REPORTÓ
@@ -614,7 +647,7 @@ final incidentes = await _service.obtenerMisIncidentes(_token!);
   Widget _buildIncidenteCard(dynamic incidente) {
     final estadoId = incidente['estadoId'] ?? 'EST_PENDIENTE';
     final descripcion = incidente['descripcion'] ?? 'Sin descripción';
-final laboratorio = _obtenerNombreLaboratorio(incidente);
+    final laboratorio = _obtenerNombreLaboratorio(incidente);
     final fechaReporte = incidente['fecha_reporte'] ?? '';
     final horaReporte = incidente['hora_reporte'] ?? '';
 
@@ -842,7 +875,7 @@ final laboratorio = _obtenerNombreLaboratorio(incidente);
               const SizedBox(width: 12),
               Expanded(
                 child: _buildResumenItem(
-                  'Aprobados',
+                  'Resueltos',
                   aprobados.toString(),
                   Icons.check_circle,
                   Colors.green,
@@ -920,14 +953,7 @@ final laboratorio = _obtenerNombreLaboratorio(incidente);
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'Mis Incidentes',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: AppBar(title: const Text('Mis Incidentes')),
       body:
           _token == null || _isLoading
               ? const Center(
@@ -997,6 +1023,7 @@ final laboratorio = _obtenerNombreLaboratorio(incidente);
                 child: Column(
                   children: [
                     _buildResumenCard(),
+
                     Expanded(
                       child: ListView.builder(
                         itemCount: _incidentes.length,
@@ -1008,6 +1035,42 @@ final laboratorio = _obtenerNombreLaboratorio(incidente);
                   ],
                 ),
               ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        tooltip: 'Exportar PDF',
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Exportar trazabilidad'),
+                  content: const Text(
+                    '¿Deseas exportar el PDF de trazabilidad?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _descargarTrazabilidadPdf();
+                      },
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Exportar PDF'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+          );
+        },
+        child: const Icon(Icons.picture_as_pdf),
+      ),
     );
   }
 }

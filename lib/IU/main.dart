@@ -3,10 +3,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'login.dart';
 import "../IU/Admin_IncidentesPage.dart";
 import "../IU/admin_ObjetosEncontrados.dart";
-// Importa las páginas necesarias
-void main() { 
+import 'package:flutter/services.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Color(0xFF0021B6), // Azul fuerte
+      statusBarIconBrightness: Brightness.light, // Iconos blancos
+    ),
+  );
   runApp(const MyApp());
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -14,13 +23,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Gestión de Novedades',  
-          debugShowCheckedModeBanner: false, // Esta línea quita el banner debug
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Esquema de colores basado en azul 
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF667eea),
+          seedColor: const Color(0xFF0021B6),
           brightness: Brightness.light,
-          primary: const Color(0xFF667eea),
+          primary: const Color(0xFF0021B6),
           secondary: const Color(0xFF4B73E8),
           surface: Colors.white,
           background: const Color(0xFFF8FAFF),
@@ -87,11 +95,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF667eea),
+          backgroundColor: const Color(0xFF0021B6),
           foregroundColor: Colors.white,
           elevation: 0,
           scrolledUnderElevation: 8,
-          shadowColor: const Color(0xFF667eea).withOpacity(0.3),
+          shadowColor: const Color(0xFF0021B6).withOpacity(0.3),
           titleTextStyle: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w500,
@@ -114,10 +122,10 @@ class MyApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF667eea),
+            backgroundColor: const Color(0xFF0021B6),
             foregroundColor: Colors.white,
             elevation: 4,
-            shadowColor: const Color(0xFF667eea).withOpacity(0.3),
+            shadowColor: const Color(0xFF0021B6).withOpacity(0.3),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -131,8 +139,8 @@ class MyApp extends StatelessWidget {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF667eea),
-            side: const BorderSide(color: Color(0xFF667eea), width: 1.5),
+            foregroundColor: const Color(0xFF0021B6),
+            side: const BorderSide(color: Color(0xFF0021B6), width: 1.5),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -146,7 +154,7 @@ class MyApp extends StatelessWidget {
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF667eea),
+            foregroundColor: const Color(0xFF0021B6),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -161,11 +169,11 @@ class MyApp extends StatelessWidget {
         cardTheme: CardTheme(
           color: Colors.white,
           elevation: 2,
-          shadowColor: const Color(0xFF667eea).withOpacity(0.1),
+          shadowColor: const Color(0xFF0021B6).withOpacity(0.1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: const Color(0xFF667eea).withOpacity(0.1),
+              color: const Color(0xFF0021B6).withOpacity(0.1),
               width: 1,
             ),
           ),
@@ -177,26 +185,26 @@ class MyApp extends StatelessWidget {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: const Color(0xFF667eea).withOpacity(0.3),
+              color: const Color(0xFF0021B6).withOpacity(0.3),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: const Color(0xFF667eea).withOpacity(0.3),
+              color: const Color(0xFF0021B6).withOpacity(0.3),
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(
-              color: Color(0xFF667eea),
+              color: Color(0xFF0021B6),
               width: 2,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(
-              color: Color(0xFF667eea),
+              color: Color(0xFF0021B6),
               width: 1,
             ),
           ),
@@ -216,7 +224,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: const Color(0xFF667eea),
+          backgroundColor: const Color(0xFF0021B6),
           foregroundColor: Colors.white,
           elevation: 6,
           shape: RoundedRectangleBorder(
@@ -225,7 +233,7 @@ class MyApp extends StatelessWidget {
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF667eea),
+          selectedItemColor: const Color(0xFF0021B6),
           unselectedItemColor: const Color(0xFF9E9E9E),
           elevation: 8,
           type: BottomNavigationBarType.fixed,
@@ -239,14 +247,14 @@ class MyApp extends StatelessWidget {
           ),
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: const Color(0xFF667eea).withOpacity(0.1),
+          backgroundColor: const Color(0xFF0021B6).withOpacity(0.1),
           labelStyle: GoogleFonts.poppins(
-            color: const Color(0xFF667eea),
+            color: const Color(0xFF0021B6),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
           side: BorderSide(
-            color: const Color(0xFF667eea).withOpacity(0.3),
+            color: const Color(0xFF0021B6).withOpacity(0.3),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -255,7 +263,7 @@ class MyApp extends StatelessWidget {
         dialogTheme: DialogTheme(
           backgroundColor: Colors.white,
           elevation: 8,
-          shadowColor: const Color(0xFF667eea).withOpacity(0.2),
+          shadowColor: const Color(0xFF0021B6).withOpacity(0.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -271,7 +279,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: const Color(0xFF667eea),
+          backgroundColor: const Color(0xFF0021B6),
           contentTextStyle: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: 16,
@@ -283,9 +291,9 @@ class MyApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           elevation: 6,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFF),
+        scaffoldBackgroundColor: const Color(0xFF0021B6),
         dividerTheme: DividerThemeData(
-          color: const Color(0xFF667eea).withOpacity(0.2),
+          color: const Color(0xFF0021B6).withOpacity(0.2),
           thickness: 1,
           space: 1,
         ),
@@ -295,8 +303,6 @@ class MyApp extends StatelessWidget {
         '/adminIncidentes': (context) => const AdminIncidentesPage(),
         '/adminObjetosEncontrados': (context) => const AdminObjetosEncontradosPage(),
       }
-      // Para mostrar los incidentes, navega a:
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => const MisIncidentesWrapper()));
     );
   }
-} 
+}

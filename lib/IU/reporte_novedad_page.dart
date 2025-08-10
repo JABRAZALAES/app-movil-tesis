@@ -23,6 +23,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
   final String? _estadoId = 'EST_PENDIENTE';
   String? _inconvenienteSeleccionado;
   File? _imagen;
+  String? _tipoInconvenienteSeleccionado;
 
   List<Map<String, dynamic>> _laboratorios = [];
   List<Map<String, dynamic>> _computadoras = [];
@@ -73,16 +74,27 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
     _inconvenientes = await _service.obtenerInconvenientes(_token!);
     setState(() {});
   }
+  void _ordenarComputadorasPorNumero() {
+  _computadoras.sort((a, b) {
+    final regex = RegExp(r'\d+');
+    final aMatch = regex.firstMatch(a['nombre'] ?? '')?.group(0);
+    final bMatch = regex.firstMatch(b['nombre'] ?? '')?.group(0);
+    final aNum = aMatch != null ? int.tryParse(aMatch) ?? 0 : 0;
+    final bNum = bMatch != null ? int.tryParse(bMatch) ?? 0 : 0;
+    return aNum.compareTo(bNum);
+  });
+}
 
-  Future<void> _cargarComputadoras() async {
-    if (_laboratorioId != null && _token != null) {
-      _computadoras = await _service.obtenerComputadorasPorLaboratorio(
-        _laboratorioId!,
-        _token!,
-      );
-      setState(() {});
-    }
+Future<void> _cargarComputadoras() async {
+  if (_laboratorioId != null && _token != null) {
+    _computadoras = await _service.obtenerComputadorasPorLaboratorio(
+      _laboratorioId!,
+      _token!,
+    );
+    _ordenarComputadorasPorNumero(); // <-- Ordena aquí
+    setState(() {});
   }
+}
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -221,7 +233,17 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
 
   Future<void> _enviarFormulario() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_imagen == null) {
+      _showSnackBar(
+        'Por favor, agrega una imagen como evidencia.',
+        isError: true,
+      );
+      return;
+    }
 
+    setState(() {
+      _isSubmitting = true;
+    });
     setState(() {
       _isSubmitting = true;
     });
@@ -355,7 +377,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                 expandedHeight: 120,
                 floating: false,
                 pinned: true,
-                backgroundColor:  Color.fromARGB(255, 0, 33, 182),
+                backgroundColor: Color.fromARGB(255, 0, 33, 182),
                 foregroundColor: Colors.white,
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
@@ -415,22 +437,12 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                           value: _inconvenienteSeleccionado,
                                           isExpanded: true,
                                           items: [
-                                            ..._inconvenientes
-                                                .where(
-                                                  (inc) =>
-                                                      inc['tipo'] ==
-                                                      'Recurrente',
-                                                ) // Solo los recurrentes
-                                                .map(
-                                                  (
-                                                    inc,
-                                                  ) => DropdownMenuItem<String>(
-                                                    value: inc['id'].toString(),
-                                                    child: Text(
-                                                      inc['descripcion'],
-                                                    ),
-                                                  ),
-                                                ),
+                                            ..._inconvenientes.map(
+                                              (inc) => DropdownMenuItem<String>(
+                                                value: inc['id'].toString(),
+                                                child: Text(inc['descripcion']),
+                                              ),
+                                            ),
                                             const DropdownMenuItem<String>(
                                               value: 'otro',
                                               child: Text('Otro (especificar)'),
@@ -439,12 +451,32 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                           decoration: _buildInputDecoration(
                                             'Seleccionar tipo',
                                           ),
-                                          onChanged:
-                                              (value) => setState(
-                                                () =>
-                                                    _inconvenienteSeleccionado =
-                                                        value,
-                                              ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _inconvenienteSeleccionado =
+                                                  value;
+                                              if (value == 'otro') {
+                                                _tipoInconvenienteSeleccionado =
+                                                    null;
+                                              } else {
+                                                final inc = _inconvenientes
+                                                    .firstWhere(
+                                                      (i) =>
+                                                          i['id'].toString() ==
+                                                          value,
+                                                      orElse: () => {},
+                                                    );
+                                                _tipoInconvenienteSeleccionado =
+                                                    inc['tipo']?.toString();
+                                              }
+                                              _computadoraId = null;
+                                              _computadoras = [];
+                                            });
+                                            if (_tipoInconvenienteSeleccionado ==
+                                                'ESPECIFICO') {
+                                              _cargarComputadoras();
+                                            }
+                                          },
                                           validator:
                                               (value) =>
                                                   value == null
@@ -461,6 +493,7 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                               'Especificar inconveniente',
                                               icon: Icons.edit,
                                             ),
+                                             maxLength: 150, 
                                             validator:
                                                 (value) =>
                                                     value!.isEmpty
@@ -473,20 +506,27 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                   ),
 
                                   // Descripción
+                                  // ...en el build...
                                   _buildSection(
                                     title: 'Descripción del Problema',
                                     icon: Icons.description,
                                     child: TextFormField(
                                       controller: _descripcionController,
                                       maxLines: 4,
+                                      maxLength:
+                                          200, // <-- Límite de 200 caracteres
                                       decoration: _buildInputDecoration(
                                         'Describe detalladamente el problema',
                                       ),
-                                      validator:
-                                          (value) =>
-                                              value!.isEmpty
-                                                  ? 'Campo requerido'
-                                                  : null,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo requerido';
+                                        }
+                                        if (value.length > 200) {
+                                          return 'La descripción no puede exceder 200 caracteres';
+                                        }
+                                        return null;
+                                      },
                                     ),
                                   ),
 
@@ -496,27 +536,45 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                     icon: Icons.location_on,
                                     child: Column(
                                       children: [
-                                                                         DropdownButtonFormField<String>(
-                                      value: _laboratorioId,
-                                      isExpanded: true,
-                                      items: _laboratorios.map(
-                                        (lab) => DropdownMenuItem<String>(
-                                          value: lab['id'].toString(), // Usa el id autoincremental
-                                          child: Text(lab['nombre'] ?? 'Sin nombre'),
+                                        DropdownButtonFormField<String>(
+                                          value: _laboratorioId,
+                                          isExpanded: true,
+                                          items:
+                                              _laboratorios
+                                                  .map(
+                                                    (lab) => DropdownMenuItem<
+                                                      String
+                                                    >(
+                                                      value:
+                                                          lab['id']
+                                                              .toString(), // Usa el id autoincremental
+                                                      child: Text(
+                                                        lab['nombre'] ??
+                                                            'Sin nombre',
+                                                      ),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                          decoration: _buildInputDecoration(
+                                            'Laboratorio',
+                                          ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _laboratorioId = value;
+                                              _computadoraId = null;
+                                              _computadoras = [];
+                                            });
+                                            _cargarComputadoras();
+                                          },
+                                          validator:
+                                              (value) =>
+                                                  value == null
+                                                      ? 'Campo requerido'
+                                                      : null,
                                         ),
-                                      ).toList(),
-                                      decoration: _buildInputDecoration('Laboratorio'),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _laboratorioId = value;
-                                          _computadoraId = null;
-                                          _computadoras = [];
-                                        });
-                                        _cargarComputadoras();
-                                      },
-                                      validator: (value) => value == null ? 'Campo requerido' : null,
-                                    ),
-                                        if (_computadoras.isNotEmpty) ...[
+                                        if (_tipoInconvenienteSeleccionado ==
+                                                'ESPECIFICO' &&
+                                            _computadoras.isNotEmpty) ...[
                                           const SizedBox(height: 16),
                                           DropdownButtonFormField<int>(
                                             value: _computadoraId,
@@ -542,6 +600,14 @@ class _IncidenteFormPageState extends State<ReporteIncidentePage>
                                                 (value) => setState(
                                                   () => _computadoraId = value,
                                                 ),
+                                            validator: (value) {
+                                              if (_tipoInconvenienteSeleccionado ==
+                                                      'ESPECIFICO' &&
+                                                  value == null) {
+                                                return 'Selecciona una computadora';
+                                              }
+                                              return null;
+                                            },
                                           ),
                                         ],
                                       ],
